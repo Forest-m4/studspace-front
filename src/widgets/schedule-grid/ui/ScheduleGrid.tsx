@@ -41,7 +41,7 @@ export function ScheduleGrid({ spaces, items }: Props) {
                   const { top, height } = calculateItemPosition(item);
                   return (
                     <div key={item.id} style={{ top: `${top}px`, height: `${height}px` }} className="absolute w-[95%] left-[2.5%] z-10">
-                      <BookingItem item={item} />
+                      <BookingItem item={item} variant="grid" />
                     </div>
                   );
                 })}
