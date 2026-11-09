@@ -9,6 +9,7 @@ import type { NewBookingDraft } from '@/entities/booking-draft'
 export interface NewBookingFormProps {
   draft: NewBookingDraft
   onChange: (next: NewBookingDraft) => void
+  onOpenDatePicker: () => void
   onClose: () => void
 }
 
@@ -16,7 +17,7 @@ function FieldLabel({ children }: { children: string }) {
   return <p className="text-[13px] text-brand-dark font-medium">{children}</p>
 }
 
-export function NewBookingForm({ draft, onChange, onClose }: NewBookingFormProps) {
+export function NewBookingForm({ draft, onChange, onOpenDatePicker, onClose }: NewBookingFormProps) {
   const purposeLength = draft.purpose.length
 
   const handlePeopleChange = (delta: number) => {
@@ -77,7 +78,10 @@ export function NewBookingForm({ draft, onChange, onClose }: NewBookingFormProps
 
       <section className="flex flex-col gap-3">
         <FieldLabel>Дата</FieldLabel>
-        <button className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center justify-between">
+        <button
+          onClick={onOpenDatePicker}
+          className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center justify-between"
+        >
           <span className="inline-flex items-center gap-2">
             <CalendarDays size={15} className="text-brand-muted" />
             {draft.dateLabel}
