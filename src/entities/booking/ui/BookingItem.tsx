@@ -1,39 +1,49 @@
-import type { Booking } from '../model/types'
-
+import React from 'react';
+import type { Booking } from '../model/types';
 export interface BookingItemProps {
-  booking: Booking
-  isLast?: boolean
+  item: Booking;
 }
 
-export function BookingItem({ booking, isLast = false }: BookingItemProps) {
-  const isCompleted = booking.status === 'completed'
+export const BookingItem: React.FC<BookingItemProps> = ({ item }) => {
+  if (!item) return null; // <--- Защита от падения
+
+  const isEvent = item?.type === 'event';
+  const isCompleted = item?.type === 'booking' && item?.status === 'completed';
+  
+  const bgClass = isEvent 
+    ? 'bg-purple-100 border-purple-300' 
+    : isCompleted 
+      ? 'bg-indigo-50 border-indigo-200 opacity-70' 
+      : 'bg-[#f4f7d4] border-[#e2e8a0]';
+
+  const formatTime = (isoString?: string) => {
+    if (!isoString) return '--:--';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
-    <div>
-      <div className="flex items-center gap-3 p-3">
-        <div
-          className={`w-1 min-h-[38px] self-stretch rounded-full shrink-0 ${
-            isCompleted ? 'bg-[#a9a7ef]' : 'bg-[#6867e9]'
-          }`}
-        />
-        <div className="flex flex-col">
-          <span
-            className={`text-[17px] font-semibold leading-snug ${
-              isCompleted ? 'text-[#7e78a8]' : 'text-[#1b1b22]'
-            }`}
-          >
-            {booking.startTime} – {booking.endTime}
-          </span>
-          <span
-            className={`text-sm ${
-              isCompleted ? 'text-[#9c98b6]' : 'text-[#6b6480]'
-            }`}
-          >
-            {booking.spaceName}
-          </span>
-        </div>
+    <div className={`absolute w-full rounded-md border-l-4 p-2 text-xs flex flex-col overflow-hidden shadow-sm ${bgClass}`}>
+      <div className="font-semibold text-gray-800 leading-tight mb-1">
+        {item?.title || 'Без названия'}
       </div>
-      {!isLast && <div className="h-px bg-[#eeedf3] mx-3" />}
+      
+      <div className="text-gray-600 mb-1">
+        {formatTime(item?.startTime)} - {formatTime(item?.endTime)}
+        {item?.type === 'booking' ? ` • ${item?.ownerName || ''}` : ` • ${item?.organizer || ''}`}
+      </div>
+
+      {item?.type === 'booking' && item?.status === 'completed' && (
+        <div className="mt-auto inline-block bg-white/60 text-gray-600 px-1.5 py-0.5 rounded text-[10px] w-max">
+          Завершено
+        </div>
+      )}
+
+      {item?.type === 'event' && (
+        <div className="mt-auto inline-block bg-white/60 text-gray-600 px-1.5 py-0.5 rounded text-[10px] w-max">
+          Мероприятие
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};

@@ -12,7 +12,7 @@ export interface HomePageProps {
 
 export function HomePage({ onTabChange }: HomePageProps) {
   return (
-    <main className="flex flex-col gap-4 max-w-[640px] w-full px-4 pt-6 pb-32 mx-auto">
+    <main className="flex flex-col gap-4 max-w-160 w-full px-4 pt-6 pb-32 mx-auto">
       <AppHeader
         user={MOCK_USER}
         hasNotifications
