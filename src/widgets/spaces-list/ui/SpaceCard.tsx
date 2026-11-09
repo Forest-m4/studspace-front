@@ -8,8 +8,6 @@ export interface SpaceCardProps {
   onBook?: () => void
 }
 
-const SPACE_PLACEHOLDER_CLASS = 'bg-[#efecf7] flex items-center justify-center'
-
 export function SpaceCard({ space, onBook }: SpaceCardProps) {
   const isFree = space.status === 'free'
 
