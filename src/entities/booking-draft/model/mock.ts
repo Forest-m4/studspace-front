@@ -18,6 +18,7 @@ export const BOOKING_SPACE_OPTIONS: BookingSpaceOption[] = [
 export const MOCK_NEW_BOOKING_DRAFT: NewBookingDraft = {
   spaceId: 'space-b',
   fullName: 'Анна Соколова',
+  dateISO: '2026-10-16',
   dateLabel: 'Пятница, 16 октября',
   fromTime: '15:00',
   toTime: '16:30',

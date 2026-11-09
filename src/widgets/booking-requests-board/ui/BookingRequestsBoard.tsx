@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { AlertTriangle, CalendarDays, Check, CircleCheck, Clock3 } from 'lucide-react'
 import { MOCK_BOOKING_REQUESTS, REQUEST_TABS } from '@/entities/booking-request'
 import type { BookingRequest, RequestTab } from '@/entities/booking-request'
+import { RejectRequestModal } from '@/widgets/reject-request-modal'
 
 function Field({ label, children }: { label: string; children: string }) {
   return (
@@ -12,7 +13,7 @@ function Field({ label, children }: { label: string; children: string }) {
   )
 }
 
-function RequestCard({ request }: { request: BookingRequest }) {
+function RequestCard({ request, onReject }: { request: BookingRequest; onReject: (request: BookingRequest) => void }) {
   const statusBadgeClass =
     request.status === 'approved'
       ? 'bg-[#daf6e8] text-[#2e9e6b]'
@@ -114,7 +115,10 @@ function RequestCard({ request }: { request: BookingRequest }) {
 
         {request.status === 'new' ? (
           <div className="grid grid-cols-2 gap-2">
-            <button className="h-9 rounded-xl bg-[#f6f6fb] text-[#dd596c] text-[15px] font-medium hover:bg-[#f2eff9] transition-colors">
+            <button
+              onClick={() => onReject(request)}
+              className="h-9 rounded-xl bg-[#f6f6fb] text-[#dd596c] text-[15px] font-medium hover:bg-[#f2eff9] transition-colors"
+            >
               Отклонить
             </button>
             <button className="h-9 rounded-xl bg-brand-primary text-white text-[15px] font-medium hover:bg-[#5c5adf] transition-colors inline-flex items-center justify-center gap-1.5">
@@ -140,6 +144,7 @@ function RequestCard({ request }: { request: BookingRequest }) {
 
 export function BookingRequestsBoard() {
   const [activeTab, setActiveTab] = useState<RequestTab>('new')
+  const [rejectingRequest, setRejectingRequest] = useState<BookingRequest | null>(null)
 
   const requests = useMemo(
     () => MOCK_BOOKING_REQUESTS.filter((request) => request.status === activeTab),
@@ -166,9 +171,17 @@ export function BookingRequestsBoard() {
 
       <div className="flex flex-col gap-3">
         {requests.map((request) => (
-          <RequestCard key={request.id} request={request} />
+          <RequestCard key={request.id} request={request} onReject={setRejectingRequest} />
         ))}
       </div>
+
+      {rejectingRequest && (
+        <RejectRequestModal
+          request={rejectingRequest}
+          onClose={() => setRejectingRequest(null)}
+          onSubmit={() => setRejectingRequest(null)}
+        />
+      )}
     </section>
   )
 }
