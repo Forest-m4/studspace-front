@@ -30,13 +30,13 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <Icon
               size={24}
               strokeWidth={isActive ? 2 : 1.6}
-              className={isActive ? 'text-[#6867e9]' : 'text-[#1f1a3d]'}
+              className={isActive ? 'text-brand-primary' : 'text-brand-dark'}
             />
             <span
-              className={`text-[12px] leading-[15px] ${
+              className={`text-[12px] leading-3.75 ${
                 isActive
-                  ? 'text-[#6867e9] font-medium'
-                  : 'text-[#1f1a3d] font-normal'
+                  ? 'text-brand-primary font-medium'
+                  : 'text-brand-dark font-normal'
               }`}
             >
               {label}
