@@ -2,13 +2,13 @@ import type { BookingSpaceOption, NewBookingDraft } from './types'
 
 export const BOOKING_SPACE_OPTIONS: BookingSpaceOption[] = [
   {
-    id: 'space-a',
+    id: 1,
     name: 'Пространство A',
     capacityLabel: 'до 25 чел.',
     color: 'violet',
   },
   {
-    id: 'space-b',
+    id: 2,
     name: 'Пространство B',
     capacityLabel: 'до 8 чел.',
     color: 'lime',
@@ -16,7 +16,7 @@ export const BOOKING_SPACE_OPTIONS: BookingSpaceOption[] = [
 ]
 
 export const MOCK_NEW_BOOKING_DRAFT: NewBookingDraft = {
-  spaceId: 'space-b',
+  spaceId: 2,
   fullName: 'Анна Соколова',
   dateISO: '2026-10-16',
   dateLabel: 'Пятница, 16 октября',

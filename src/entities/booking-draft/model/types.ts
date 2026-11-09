@@ -1,12 +1,12 @@
 export interface BookingSpaceOption {
-  id: string
+  id: number
   name: string
   capacityLabel: string
   color: 'violet' | 'lime'
 }
 
 export interface NewBookingDraft {
-  spaceId: string
+  spaceId: number
   fullName: string
   dateISO: string
   dateLabel: string

@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { CalendarPlus2, Clock3, Plus } from 'lucide-react'
 import { MOCK_MY_BOOKINGS, MY_BOOKING_TABS } from '@/entities/my-booking'
 import type { MyBooking, MyBookingStatus, MyBookingTab } from '@/entities/my-booking'
+import { mapApiBookingsToMyBookings } from '@/shared/api/adapters'
+import { cancelBooking, getMyBookings, rescheduleBooking, withdrawBooking } from '@/shared/api/studspace'
 
 export interface MyBookingsBoardProps {
   onCreateBooking: () => void
@@ -15,7 +17,17 @@ function statusBadge(status: MyBookingStatus) {
   return { label: 'Отменена вами', className: 'bg-[#f0f0f5] text-[#8a88a5]' }
 }
 
-function ActiveBookingCard({ booking }: { booking: MyBooking }) {
+function ActiveBookingCard({
+  booking,
+  onWithdraw,
+  onCancel,
+  onReschedule,
+}: {
+  booking: MyBooking
+  onWithdraw: (bookingId?: number) => void
+  onCancel: (bookingId?: number) => void
+  onReschedule: (booking: MyBooking) => void
+}) {
   const badge = statusBadge(booking.status)
   const [timeLine, dateLine] = booking.dateTimeLabel.split('\n')
 
@@ -40,11 +52,26 @@ function ActiveBookingCard({ booking }: { booking: MyBooking }) {
       <div className="h-px bg-[#efeff4]" />
       <div className="px-4 py-2">
         {booking.status === 'pending' ? (
-          <button className="text-[16px] text-brand-muted hover:text-brand-dark transition-colors">Отозвать заявку</button>
+          <button
+            onClick={() => onWithdraw(booking.bookingId)}
+            className="text-[16px] text-brand-muted hover:text-brand-dark transition-colors"
+          >
+            Отозвать заявку
+          </button>
         ) : (
           <div className="flex items-center gap-4 text-[16px]">
-            <button className="text-brand-primary hover:text-[#5c5adf] transition-colors">Перенести</button>
-            <button className="text-[#dd596c] hover:text-[#c54f5f] transition-colors">Отменить</button>
+            <button
+              onClick={() => onReschedule(booking)}
+              className="text-brand-primary hover:text-[#5c5adf] transition-colors"
+            >
+              Перенести
+            </button>
+            <button
+              onClick={() => onCancel(booking.bookingId)}
+              className="text-[#dd596c] hover:text-[#c54f5f] transition-colors"
+            >
+              Отменить
+            </button>
           </div>
         )}
       </div>
@@ -79,7 +106,50 @@ function HistoryBookingCard({ booking }: { booking: MyBooking }) {
 
 export function MyBookingsBoard({ onCreateBooking }: MyBookingsBoardProps) {
   const [activeTab, setActiveTab] = useState<MyBookingTab>('active')
-  const [items] = useState<MyBooking[]>(MOCK_MY_BOOKINGS)
+  const [items, setItems] = useState<MyBooking[]>(MOCK_MY_BOOKINGS)
+
+  const loadTab = async (tab: MyBookingTab) => {
+    const data = await getMyBookings(tab)
+    if (!data) return
+
+    const nextItems = mapApiBookingsToMyBookings(data.items, tab)
+    setItems((prev) => {
+      const other = prev.filter((item) => item.tab !== tab)
+      return [...other, ...nextItems]
+    })
+  }
+
+  useEffect(() => {
+    loadTab(activeTab).catch(() => undefined)
+  }, [activeTab])
+
+  const handleWithdraw = async (bookingId?: number) => {
+    if (!bookingId) return
+    await withdrawBooking(bookingId)
+    await loadTab('active')
+  }
+
+  const handleCancel = async (bookingId?: number) => {
+    if (!bookingId) return
+    await cancelBooking(bookingId)
+    await loadTab('active')
+  }
+
+  const handleReschedule = async (booking: MyBooking) => {
+    if (!booking.bookingId || !booking.startsAt || !booking.endsAt || !booking.spaceId) return
+
+    const start = new Date(booking.startsAt)
+    const end = new Date(booking.endsAt)
+    start.setDate(start.getDate() + 1)
+    end.setDate(end.getDate() + 1)
+
+    await rescheduleBooking(booking.bookingId, {
+      space_id: booking.spaceId,
+      starts_at: start.toISOString(),
+      ends_at: end.toISOString(),
+    })
+    await loadTab('active')
+  }
 
   const tabItems = useMemo(
     () => items.filter((item) => item.tab === activeTab),
@@ -121,7 +191,9 @@ export function MyBookingsBoard({ onCreateBooking }: MyBookingsBoardProps) {
       ) : (
         <div className="flex flex-col gap-3">
           {tabItems.map((item) => (
-            activeTab === 'active' ? <ActiveBookingCard key={item.id} booking={item} /> : <HistoryBookingCard key={item.id} booking={item} />
+            activeTab === 'active'
+              ? <ActiveBookingCard key={item.id} booking={item} onWithdraw={handleWithdraw} onCancel={handleCancel} onReschedule={handleReschedule} />
+              : <HistoryBookingCard key={item.id} booking={item} />
           ))}
         </div>
       )}

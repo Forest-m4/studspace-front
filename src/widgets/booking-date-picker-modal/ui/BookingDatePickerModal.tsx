@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { getBusyDays } from '@/shared/api/studspace'
 
 export interface BookingDatePickerModalProps {
   selectedDateISO: string
@@ -50,9 +51,28 @@ export function BookingDatePickerModal({ selectedDateISO, onClose, onSelect }: B
   const initialDate = new Date(`${selectedDateISO}T00:00:00`)
   const [currentMonth, setCurrentMonth] = useState(new Date(initialDate.getFullYear(), initialDate.getMonth(), 1))
   const [pendingDateISO, setPendingDateISO] = useState(selectedDateISO)
+  const [busyDays, setBusyDays] = useState<string[]>([])
 
   const days = useMemo(() => getMonthDays(currentMonth), [currentMonth])
-  const hasBookingsDots = new Set(['2026-10-16', '2026-10-19', '2026-10-23'])
+  const hasBookingsDots = useMemo(() => new Set(busyDays), [busyDays])
+
+  useEffect(() => {
+    let active = true
+
+    const month = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}`
+
+    const loadBusyDays = async () => {
+      const data = await getBusyDays(month)
+      if (!active) return
+      setBusyDays(data?.days ?? [])
+    }
+
+    loadBusyDays().catch(() => undefined)
+
+    return () => {
+      active = false
+    }
+  }, [currentMonth])
 
   return (
     <div className="fixed inset-0 z-50 bg-black/25 flex items-start justify-center px-4 pt-14">

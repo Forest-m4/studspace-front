@@ -3,4 +3,6 @@ export interface User {
   firstName: string
   lastName: string
   status?: string
+  role?: 'student' | 'admin'
+  notificationsAllowed?: boolean
 }

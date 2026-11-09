@@ -13,9 +13,13 @@ export interface FeaturedEvent {
 
 export interface EventListItem {
   id: string
+  eventId?: number
   dateLabel: string
   day: string
   month: string
   title: string
   time: string
+  state?: 'available' | 'few_left' | 'full' | 'registered' | 'past'
+  isRegistered?: boolean
+  isSubscribed?: boolean
 }

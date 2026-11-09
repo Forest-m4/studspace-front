@@ -1,15 +1,13 @@
 import { CalendarDays, ChevronDown, Clock3, Minus, Plus, X } from 'lucide-react'
-import {
-  BOOKING_PURPOSE_LIMIT,
-  BOOKING_SPACE_OPTIONS,
-  BOOKING_TIME_WARNING,
-} from '@/entities/booking-draft'
-import type { NewBookingDraft } from '@/entities/booking-draft'
+import { BOOKING_PURPOSE_LIMIT, BOOKING_TIME_WARNING } from '@/entities/booking-draft'
+import type { BookingSpaceOption, NewBookingDraft } from '@/entities/booking-draft'
 
 export interface NewBookingFormProps {
+  spaceOptions: BookingSpaceOption[]
   draft: NewBookingDraft
   onChange: (next: NewBookingDraft) => void
   onOpenDatePicker: () => void
+  onSubmit: () => void
   onClose: () => void
 }
 
@@ -17,7 +15,14 @@ function FieldLabel({ children }: { children: string }) {
   return <p className="text-[13px] text-brand-dark font-medium">{children}</p>
 }
 
-export function NewBookingForm({ draft, onChange, onOpenDatePicker, onClose }: NewBookingFormProps) {
+export function NewBookingForm({
+  spaceOptions,
+  draft,
+  onChange,
+  onOpenDatePicker,
+  onSubmit,
+  onClose,
+}: NewBookingFormProps) {
   const purposeLength = draft.purpose.length
 
   const handlePeopleChange = (delta: number) => {
@@ -41,14 +46,15 @@ export function NewBookingForm({ draft, onChange, onOpenDatePicker, onClose }: N
       <section className="flex flex-col gap-3">
         <FieldLabel>Помещение</FieldLabel>
         <div className="grid grid-cols-2 gap-2">
-          {BOOKING_SPACE_OPTIONS.map((option) => {
+          {spaceOptions.map((option) => {
             const isActive = draft.spaceId === option.id
             const dotColor = option.color === 'violet' ? 'bg-[#6f6eea]' : 'bg-[#b8d415]'
+            const peopleLimit = Number(option.capacityLabel.match(/\d+/)?.[0] ?? draft.peopleLimit)
 
             return (
               <button
                 key={option.id}
-                onClick={() => onChange({ ...draft, spaceId: option.id })}
+                onClick={() => onChange({ ...draft, spaceId: option.id, peopleLimit, peopleCount: Math.min(draft.peopleCount, peopleLimit) })}
                 className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
                   isActive
                     ? 'border-brand-primary bg-[#f6f6ff]'
@@ -93,17 +99,27 @@ export function NewBookingForm({ draft, onChange, onOpenDatePicker, onClose }: N
       <section className="grid grid-cols-2 gap-2">
         <div className="flex flex-col gap-2">
           <FieldLabel>С</FieldLabel>
-          <button className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center gap-2">
+          <label className="h-11 rounded-xl bg-[#f4f4f8] px-3 inline-flex items-center gap-2">
             <Clock3 size={15} className="text-brand-muted" />
-            {draft.fromTime}
-          </button>
+            <input
+              type="time"
+              value={draft.fromTime}
+              onChange={(event) => onChange({ ...draft, fromTime: event.target.value })}
+              className="bg-transparent text-[18px] text-brand-dark outline-none w-full"
+            />
+          </label>
         </div>
         <div className="flex flex-col gap-2">
           <FieldLabel>До</FieldLabel>
-          <button className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center gap-2">
+          <label className="h-11 rounded-xl bg-[#f4f4f8] px-3 inline-flex items-center gap-2">
             <Clock3 size={15} className="text-brand-muted" />
-            {draft.toTime}
-          </button>
+            <input
+              type="time"
+              value={draft.toTime}
+              onChange={(event) => onChange({ ...draft, toTime: event.target.value })}
+              className="bg-transparent text-[18px] text-brand-dark outline-none w-full"
+            />
+          </label>
         </div>
       </section>
 
@@ -157,7 +173,10 @@ export function NewBookingForm({ draft, onChange, onOpenDatePicker, onClose }: N
         </div>
       </section>
 
-      <button className="mt-3 h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors">
+      <button
+        onClick={onSubmit}
+        className="mt-3 h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors"
+      >
         Отправить заявку
       </button>
     </main>

@@ -3,6 +3,7 @@ export type MyBookingStatus = 'pending' | 'approved' | 'rejected' | 'completed' 
 
 export interface MyBooking {
   id: string
+  bookingId?: number
   tab: MyBookingTab
   status: MyBookingStatus
   createdAtLabel?: string
@@ -11,4 +12,7 @@ export interface MyBooking {
   purpose: string
   statusNote?: string
   rejectReason?: string
+  startsAt?: string
+  endsAt?: string
+  spaceId?: number
 }

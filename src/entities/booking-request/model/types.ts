@@ -2,6 +2,7 @@ export type RequestTab = 'new' | 'approved' | 'rejected'
 
 export interface BookingRequest {
   id: string
+  bookingId?: number
   status: RequestTab
   applicantInitials: string
   createdAtLabel: string
