@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EventsPage, HomePage, SchedulePage } from '@/pages'
+import { BookingsPage, EventsPage, HomePage, SchedulePage } from '@/pages'
 import { BottomNav } from '@/widgets/bottom-nav'
 import type { NavTab } from '@/widgets/bottom-nav'
 
@@ -11,13 +11,7 @@ export function App() {
       {activeTab === 'home' && <HomePage onTabChange={setActiveTab} />}
       {activeTab === 'schedule' && <SchedulePage />}
       {activeTab === 'events' && <EventsPage />}
-      {activeTab === 'bookings' && (
-        <div className="flex items-center justify-center min-h-screen pb-20">
-          <p className="text-brand-muted text-lg font-medium">
-            Страница в разработке
-          </p>
-        </div>
-      )}
+      {activeTab === 'bookings' && <BookingsPage />}
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   )
