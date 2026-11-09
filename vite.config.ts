@@ -1,19 +1,24 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
 
-// https://vite.dev/config/
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
 
   return {
-    // Relative asset paths: VK hosting serves the build from a nested path
     base: './',
-    plugins: [react()],
-    // Inline config stops Vite from picking up a PostCSS config from parent folders
-    css: { postcss: { plugins: [] } },
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      },
+    },
     server: {
       proxy: {
-        // The backend has no CORS, so dev requests stay on the same origin
         '/api/v1': { target: env.VITE_API_PROXY_TARGET, changeOrigin: true },
       },
     },
