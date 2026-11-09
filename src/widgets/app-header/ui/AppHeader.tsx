@@ -6,15 +6,27 @@ export interface AppHeaderProps {
   user: User
   hasNotifications?: boolean
   onNotificationsClick?: () => void
+  onProfileClick?: () => void
 }
 
-export function AppHeader({ user, hasNotifications = false, onNotificationsClick }: AppHeaderProps) {
+export function AppHeader({
+  user,
+  hasNotifications = false,
+  onNotificationsClick,
+  onProfileClick,
+}: AppHeaderProps) {
   const fullName = `${user.firstName} ${user.lastName}`
 
   return (
     <div className="bg-white rounded-2xl p-3 flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <Avatar name={fullName} size="md" />
+        <button
+          onClick={onProfileClick}
+          className="rounded-full cursor-pointer"
+          aria-label="Открыть профиль"
+        >
+          <Avatar name={fullName} size="md" />
+        </button>
         <span className="text-[24px] font-bold text-[#1f1a3d] leading-8">
           Привет, {user.firstName}!
         </span>
