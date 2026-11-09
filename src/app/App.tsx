@@ -29,7 +29,7 @@ export function App() {
           )}
           {activeTab === 'schedule' && <SchedulePage onCreateBooking={() => setOverlayScreen('new-booking')} />}
           {activeTab === 'events' && <EventsPage />}
-          {activeTab === 'bookings' && <BookingsPage />}
+          {activeTab === 'bookings' && <BookingsPage onCreateBooking={() => setOverlayScreen('new-booking')} />}
           <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
         </>
       )}
