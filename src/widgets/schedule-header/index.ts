@@ -1,1 +1,1 @@
-export { ScheduleHeader } from './ui/ScheduleHeader';
+export { ScheduleHeader } from './ui/ScheduleHeader'

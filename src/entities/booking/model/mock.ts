@@ -1,4 +1,4 @@
-import type { Booking } from './types';
+import type { Booking } from './types'
 
 export const MOCK_TODAY_BOOKINGS: Booking[] = [
   {
@@ -7,7 +7,7 @@ export const MOCK_TODAY_BOOKINGS: Booking[] = [
     endTime: '2026-10-16T12:00:00',
     spaceName: 'Пространство А',
     status: 'completed',
-    type: 'booking', 
+    type: 'booking',
     title: 'Встреча',
   },
   {
@@ -24,8 +24,8 @@ export const MOCK_TODAY_BOOKINGS: Booking[] = [
     startTime: '2026-10-16T16:00:00',
     endTime: '2026-10-16T18:30:00',
     spaceName: 'Пространство А',
-    status: 'approved', 
+    status: 'approved',
     type: 'booking',
     title: 'Мастер-класс',
   },
-];
+]

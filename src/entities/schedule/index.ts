@@ -1,3 +1,4 @@
-export { MOCK_SCHEDULE_ITEMS, MOCK_SCHEDULE_SPACES } from './model/mock';
-export type { Booking, BookingStatus, ScheduleSpace } from './model/types';
-export { calculateItemPosition, START_HOUR, END_HOUR, HOUR_HEIGHT } from './model/lib';
+export { scheduleApi } from './api/schedule-api'
+export { calculateItemPosition, END_HOUR, HOUR_HEIGHT, START_HOUR } from './model/lib'
+export { MOCK_SCHEDULE_ITEMS, MOCK_SCHEDULE_SPACES } from './model/mock'
+export type { Booking, BookingStatus, ScheduleSpace } from './model/types'

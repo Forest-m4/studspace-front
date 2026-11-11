@@ -45,6 +45,7 @@ export function ProfileEditor({ profile, onChange, onBack, onSave }: ProfileEdit
     <div className="max-w-160 w-full mx-auto px-4 pt-5 pb-26 flex flex-col gap-4">
       <header className="flex items-center gap-3">
         <button
+          type="button"
           onClick={onBack}
           className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors"
         >
@@ -93,12 +94,17 @@ export function ProfileEditor({ profile, onChange, onBack, onSave }: ProfileEdit
           onChange={(status) => onChange({ ...profile, status })}
         />
 
-        <p className="text-[13px] leading-4 text-brand-muted">Например: студент, группа - член студсовета - руководитель клуба</p>
+        <p className="text-[13px] leading-4 text-brand-muted">
+          Например: студент, группа - член студсовета - руководитель клуба
+        </p>
       </section>
 
-      <p className="text-[14px] text-brand-muted text-center">Эти данные автоматически подставляются в заявки на бронирование</p>
+      <p className="text-[14px] text-brand-muted text-center">
+        Эти данные автоматически подставляются в заявки на бронирование
+      </p>
 
       <button
+        type="button"
         onClick={onSave}
         className="h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors"
       >

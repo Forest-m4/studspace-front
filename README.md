@@ -3,7 +3,7 @@
 Фронтенд VK Mini App StudSpace: бронирование студенческих залов и запись на мероприятия.
 Бэкенд: [kr0uch/studspace](https://github.com/kr0uch/studspace).
 
-Стек: React, TypeScript, Vite, VKUI, VK Bridge, openapi-fetch.
+Стек: React, TypeScript, Vite, TailwindCSS, React Router, Feature-Sliced Design, VK Bridge, openapi-fetch, Docker, nginx.
 
 ## Запуск
 
@@ -40,7 +40,7 @@ npm run dev
 
 ## Типы API
 
-Типы в `src/api/schema.d.ts` генерируются из swagger бэка. Клон бэка должен лежать рядом, в `../studspace`.
+Типы в `src/shared/api/schema.d.ts` генерируются из swagger бэка. Клон бэка должен лежать рядом, в `../studspace`.
 
 ```bash
 npm run gen:api
@@ -52,7 +52,7 @@ TypeScript закреплён на 5.9: `openapi-typescript` пока не по�
 ## Запросы
 
 ```ts
-import { api } from './api/client'
+import { api } from '@/shared/api'
 
 const { data, error } = await api.GET('/me')
 ```

@@ -1,12 +1,13 @@
-import type { components } from './schema'
+import { formatDateLabel, formatShortDateTime, formatTime } from '@/shared/lib'
 import type { Booking } from '@/entities/booking'
-import type { EventListItem, EventWeekDay, FeaturedEvent } from '@/entities/event'
 import type { BookingRequest, RequestTab } from '@/entities/booking-request'
+import type { EventListItem, EventWeekDay, FeaturedEvent } from '@/entities/event'
 import type { MyBooking, MyBookingTab } from '@/entities/my-booking'
 import type { StudentProfile } from '@/entities/profile'
 import type { Booking as ScheduleBooking, ScheduleSpace } from '@/entities/schedule'
 import type { Space, SpaceEquipment } from '@/entities/space'
 import type { User } from '@/entities/user'
+import type { components } from './schema'
 
 type ApiHome = components['schemas']['api.Home']
 type ApiBooking = components['schemas']['api.Booking']
@@ -14,28 +15,6 @@ type ApiEventList = components['schemas']['api.EventList']
 type ApiSchedule = components['schemas']['api.Schedule']
 type ApiSpace = components['schemas']['api.Space']
 type ApiUser = components['schemas']['entities.User']
-
-function formatTime(value?: string) {
-  if (!value) return '--:--'
-  return new Date(value).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-}
-
-function formatDateLabel(value?: string) {
-  if (!value) return ''
-  const formatted = new Intl.DateTimeFormat('ru-RU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(value))
-
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-}
-
-function formatShortDateTime(start?: string, end?: string) {
-  if (!start || !end) return '--:--'
-  const day = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(start))
-  return `${day} · ${formatTime(start)}-${formatTime(end)}`
-}
 
 function mapAmenityToEquipment(amenity?: components['schemas']['entities.Amenity']): SpaceEquipment {
   const icon = amenity?.icon?.toLowerCase() ?? ''

@@ -1,6 +1,7 @@
 import { CalendarDays, ChevronDown, Clock3, Minus, Plus, X } from 'lucide-react'
 import { BOOKING_PURPOSE_LIMIT, BOOKING_TIME_WARNING } from '@/entities/booking-draft'
 import type { BookingSpaceOption, NewBookingDraft } from '@/entities/booking-draft'
+import { cn } from '@/shared/lib'
 
 export interface NewBookingFormProps {
   spaceOptions: BookingSpaceOption[]
@@ -35,6 +36,7 @@ export function NewBookingForm({
       <header className="flex items-center justify-between">
         <h1 className="text-[34px] leading-none font-bold text-brand-dark">Новая бронь</h1>
         <button
+          type="button"
           onClick={onClose}
           className="h-8 w-8 rounded-full bg-[#f2f2f8] text-brand-muted inline-flex items-center justify-center hover:bg-[#ececf3] transition-colors"
           aria-label="Закрыть"
@@ -54,15 +56,24 @@ export function NewBookingForm({
             return (
               <button
                 key={option.id}
-                onClick={() => onChange({ ...draft, spaceId: option.id, peopleLimit, peopleCount: Math.min(draft.peopleCount, peopleLimit) })}
-                className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...draft,
+                    spaceId: option.id,
+                    peopleLimit,
+                    peopleCount: Math.min(draft.peopleCount, peopleLimit),
+                  })
+                }
+                className={cn(
+                  'rounded-2xl border px-3 py-2 text-left transition-colors',
                   isActive
                     ? 'border-brand-primary bg-[#f6f6ff]'
-                    : 'border-[#ececf3] bg-white hover:bg-[#fbfbff]'
-                }`}
+                    : 'border-[#ececf3] bg-white hover:bg-[#fbfbff]',
+                )}
               >
                 <p className="text-[18px] text-brand-dark font-medium inline-flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                  <span className={cn('h-2 w-2 rounded-full', dotColor)} />
                   {option.name}
                 </p>
                 <p className="mt-1 text-[13px] text-brand-muted">{option.capacityLabel}</p>
@@ -85,6 +96,7 @@ export function NewBookingForm({
       <section className="flex flex-col gap-3">
         <FieldLabel>Дата</FieldLabel>
         <button
+          type="button"
           onClick={onOpenDatePicker}
           className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center justify-between"
         >
@@ -156,6 +168,7 @@ export function NewBookingForm({
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-[#f4f4f8] h-10 px-2 inline-flex items-center gap-2">
             <button
+              type="button"
               onClick={() => handlePeopleChange(-1)}
               className="h-6 w-6 rounded-md bg-white text-brand-dark inline-flex items-center justify-center"
             >
@@ -163,6 +176,7 @@ export function NewBookingForm({
             </button>
             <span className="text-[18px] w-6 text-center text-brand-dark">{draft.peopleCount}</span>
             <button
+              type="button"
               onClick={() => handlePeopleChange(1)}
               className="h-6 w-6 rounded-md bg-white text-brand-dark inline-flex items-center justify-center"
             >
@@ -174,6 +188,7 @@ export function NewBookingForm({
       </section>
 
       <button
+        type="button"
         onClick={onSubmit}
         className="mt-3 h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors"
       >
