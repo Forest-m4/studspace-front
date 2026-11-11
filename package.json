@@ -8,13 +8,12 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "gen:api": "swagger2openapi ../studspace/docs/swagger.yaml --outfile .openapi.json && openapi-typescript .openapi.json -o src/api/schema.d.ts",
+    "gen:api": "swagger2openapi ../studspace/docs/swagger.yaml --outfile .openapi.json && openapi-typescript .openapi.json -o src/shared/api/schema.d.ts",
     "sign:params": "node --env-file-if-exists=.env.local scripts/sign-launch-params.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",
     "@vkontakte/vk-bridge": "^3.0.2",
-    "@vkontakte/vkui": "^8.4.3",
     "lucide-react": "^1.70.0",
     "openapi-fetch": "^0.17.0",
     "react": "^19.3.1",
