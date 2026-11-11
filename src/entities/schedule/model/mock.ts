@@ -1,9 +1,9 @@
-import type { Booking, ScheduleSpace } from './types';
+import type { Booking, ScheduleSpace } from './types'
 
 export const MOCK_SCHEDULE_SPACES: ScheduleSpace[] = [
   { id: 1, name: 'Пространство А', capacity: 25, color: '#a9a7ef' },
   { id: 2, name: 'Пространство B', capacity: 8, color: '#6de89e' },
-];
+]
 
 export const MOCK_SCHEDULE_ITEMS: Booking[] = [
   {
@@ -40,4 +40,4 @@ export const MOCK_SCHEDULE_ITEMS: Booking[] = [
     spaceName: 'Пространство А',
     type: 'event',
   },
-];
+]

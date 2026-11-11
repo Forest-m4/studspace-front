@@ -1,6 +1,6 @@
-export { HomePage } from './home/ui/HomePage';
-export { SchedulePage } from './schedule/ui/SchedulePage';
-export { EventsPage } from './events/ui/EventsPage';
-export { BookingsPage } from './bookings/ui/BookingsPage';
-export { ProfilePage } from './profile/ui/ProfilePage';
-export { NewBookingPage } from './new-booking/ui/NewBookingPage';
+export { BookingsPage } from './bookings'
+export { EventsPage } from './events'
+export { HomePage } from './home'
+export { NewBookingPage } from './new-booking'
+export { ProfilePage } from './profile'
+export { SchedulePage } from './schedule'

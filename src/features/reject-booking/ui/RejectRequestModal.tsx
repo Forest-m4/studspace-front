@@ -19,6 +19,7 @@ export function RejectRequestModal({ request, onClose, onSubmit }: RejectRequest
         <div className="flex items-center justify-between">
           <h3 className="text-[36px] leading-none font-bold text-brand-dark">Отклонить заявку</h3>
           <button
+            type="button"
             onClick={onClose}
             className="h-8 w-8 rounded-full bg-[#f3f3f8] text-brand-muted inline-flex items-center justify-center"
           >
@@ -31,8 +32,12 @@ export function RejectRequestModal({ request, onClose, onSubmit }: RejectRequest
             {request.applicantInitials}
           </div>
           <div>
-            <p className="text-[16px] font-semibold text-brand-dark">{request.lastName} {request.firstName}</p>
-            <p className="text-[13px] text-brand-muted">Сб, 18 окт · {request.fromTime}-{request.toTime}</p>
+            <p className="text-[16px] font-semibold text-brand-dark">
+              {request.lastName} {request.firstName}
+            </p>
+            <p className="text-[13px] text-brand-muted">
+              Сб, 18 окт · {request.fromTime}-{request.toTime}
+            </p>
           </div>
         </div>
 
@@ -44,19 +49,23 @@ export function RejectRequestModal({ request, onClose, onSubmit }: RejectRequest
             className="w-full min-h-24 resize-none bg-transparent text-[16px] leading-6 text-brand-dark outline-none"
             placeholder="Укажите причину"
           />
-          <p className="text-[12px] text-brand-muted text-right">{reason.length} / {REJECT_REASON_LIMIT}</p>
+          <p className="text-[12px] text-brand-muted text-right">
+            {reason.length} / {REJECT_REASON_LIMIT}
+          </p>
         </div>
 
         <p className="mt-2 text-[13px] text-brand-muted">Студент увидит эту причину в своих заявках</p>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={onClose}
             className="h-11 rounded-2xl bg-[#f6f6fb] text-brand-dark text-[16px] font-medium hover:bg-[#f2eff9] transition-colors"
           >
             Отмена
           </button>
           <button
+            type="button"
             onClick={() => onSubmit(reason.trim())}
             className="h-11 rounded-2xl bg-[#cf4f45] text-white text-[16px] font-medium hover:bg-[#bf463d] transition-colors"
           >

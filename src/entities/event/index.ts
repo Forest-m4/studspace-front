@@ -1,3 +1,4 @@
+export { eventApi } from './api/event-api'
 export {
   MOCK_EVENTS,
   MOCK_EVENTS_COUNT,

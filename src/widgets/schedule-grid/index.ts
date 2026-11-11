@@ -1,1 +1,1 @@
-export { ScheduleGrid } from './ui/ScheduleGrid';
+export { ScheduleGrid } from './ui/ScheduleGrid'

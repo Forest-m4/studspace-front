@@ -1,16 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CalendarDays, Check, CircleCheck, Clock3 } from 'lucide-react'
+import { bookingApi } from '@/entities/booking'
 import { REQUEST_TABS } from '@/entities/booking-request'
 import type { BookingRequest, RequestTab } from '@/entities/booking-request'
+import { RejectRequestModal } from '@/features/reject-booking'
 import { mapApiAdminBookingToRequest } from '@/shared/api/adapters'
-import {
-  approveAdminBooking,
-  cancelAdminBooking,
-  getAdminBookings,
-  rejectAdminBooking,
-  returnAdminBookingToReview,
-} from '@/shared/api/studspace'
-import { RejectRequestModal } from '@/widgets/reject-request-modal'
+import { cn } from '@/shared/lib'
 
 function Field({ label, children }: { label: string; children: string }) {
   return (
@@ -50,14 +45,16 @@ function RequestCard({
             <div className="flex items-center gap-2">
               <span className="text-[13px] text-brand-muted">Заявка</span>
               {request.status !== 'new' && (
-                <span className={`text-[12px] px-2 py-0.5 rounded-full font-medium ${statusBadgeClass}`}>
+                <span className={cn('text-[12px] px-2 py-0.5 rounded-full font-medium', statusBadgeClass)}>
                   {request.status === 'approved' ? 'Одобрена' : 'Отклонена'}
                 </span>
               )}
             </div>
             <span className="text-[13px] text-brand-muted">{request.createdAtLabel}</span>
           </div>
-          <button className="text-[13px] text-brand-primary hover:text-[#5c5adf] transition-colors">Профиль ВК ↗</button>
+          <button type="button" className="text-[13px] text-brand-primary hover:text-[#5c5adf] transition-colors">
+            Профиль ВК ↗
+          </button>
         </div>
       </div>
 
@@ -134,12 +131,14 @@ function RequestCard({
         {request.status === 'new' ? (
           <div className="grid grid-cols-2 gap-2">
             <button
+              type="button"
               onClick={() => onReject(request)}
               className="h-9 rounded-xl bg-[#f6f6fb] text-[#dd596c] text-[15px] font-medium hover:bg-[#f2eff9] transition-colors"
             >
               Отклонить
             </button>
             <button
+              type="button"
               onClick={() => onApprove(request)}
               className="h-9 rounded-xl bg-brand-primary text-white text-[15px] font-medium hover:bg-[#5c5adf] transition-colors inline-flex items-center justify-center gap-1.5"
             >
@@ -149,12 +148,14 @@ function RequestCard({
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => onSecondary(request)}
-            className={`h-9 rounded-xl text-[15px] font-medium transition-colors ${
+            className={cn(
+              'h-9 rounded-xl text-[15px] font-medium transition-colors',
               request.status === 'approved'
                 ? 'bg-[#f8f8fc] text-[#dd596c] hover:bg-[#f2eff9]'
-                : 'bg-[#f6f6fb] text-[#8a88a5] hover:bg-[#f2eff9]'
-            }`}
+                : 'bg-[#f6f6fb] text-[#8a88a5] hover:bg-[#f2eff9]',
+            )}
           >
             {request.status === 'approved' ? 'Отменить бронь' : 'Вернуть на рассмотрение'}
           </button>
@@ -173,16 +174,28 @@ export function BookingRequestsBoard() {
   })
   const [rejectingRequest, setRejectingRequest] = useState<BookingRequest | null>(null)
 
-  const loadTab = async (tab: RequestTab) => {
-    const data = await getAdminBookings(tab)
-    setItemsByTab((prev) => ({
-      ...prev,
-      [tab]: (data?.items ?? []).map(mapApiAdminBookingToRequest),
-    }))
+  const reloadTab = (tab: RequestTab) => {
+    bookingApi
+      .getAdminBookings(tab)
+      .then((data) => {
+        setItemsByTab((prev) => ({
+          ...prev,
+          [tab]: (data?.items ?? []).map(mapApiAdminBookingToRequest),
+        }))
+      })
+      .catch(() => undefined)
   }
 
   useEffect(() => {
-    loadTab(activeTab).catch(() => undefined)
+    bookingApi
+      .getAdminBookings(activeTab)
+      .then((data) => {
+        setItemsByTab((prev) => ({
+          ...prev,
+          [activeTab]: (data?.items ?? []).map(mapApiAdminBookingToRequest),
+        }))
+      })
+      .catch(() => undefined)
   }, [activeTab])
 
   const requests = useMemo(() => itemsByTab[activeTab], [activeTab, itemsByTab])
@@ -193,12 +206,14 @@ export function BookingRequestsBoard() {
         {REQUEST_TABS.map((tab) => (
           <button
             key={tab.key}
+            type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`h-8 rounded-xl text-[14px] transition-colors ${
+            className={cn(
+              'h-8 rounded-xl text-[14px] transition-colors',
               activeTab === tab.key
                 ? 'bg-brand-primary text-white'
-                : 'text-brand-dark hover:bg-[#f2f2f8]'
-            }`}
+                : 'text-brand-dark hover:bg-[#f2f2f8]',
+            )}
           >
             {tab.label}
           </button>
@@ -213,17 +228,19 @@ export function BookingRequestsBoard() {
             onReject={setRejectingRequest}
             onApprove={(current) => {
               if (!current.bookingId) return
-              approveAdminBooking(current.bookingId)
-                .then(() => loadTab(activeTab))
+              bookingApi
+                .approveAdminBooking(current.bookingId)
+                .then(() => reloadTab(activeTab))
                 .catch(() => undefined)
             }}
             onSecondary={(current) => {
               if (!current.bookingId) return
-              const call = current.status === 'approved'
-                ? cancelAdminBooking(current.bookingId)
-                : returnAdminBookingToReview(current.bookingId)
+              const call =
+                current.status === 'approved'
+                  ? bookingApi.cancelAdminBooking(current.bookingId)
+                  : bookingApi.returnAdminBookingToReview(current.bookingId)
 
-              call.then(() => loadTab(activeTab)).catch(() => undefined)
+              call.then(() => reloadTab(activeTab)).catch(() => undefined)
             }}
           />
         ))}
@@ -237,8 +254,9 @@ export function BookingRequestsBoard() {
             const request = rejectingRequest
             setRejectingRequest(null)
             if (!request.bookingId) return
-            rejectAdminBooking(request.bookingId, reason)
-              .then(() => loadTab(activeTab))
+            bookingApi
+              .rejectAdminBooking(request.bookingId, reason)
+              .then(() => reloadTab(activeTab))
               .catch(() => undefined)
           }}
         />
