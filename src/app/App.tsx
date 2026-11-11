@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import {
   BookingsPage,
   EventsPage,
@@ -12,11 +13,23 @@ import type { NavTab } from '@/widgets/bottom-nav'
 import { mapApiUserToUser } from '@/shared/api/adapters'
 import { getMe } from '@/shared/api/studspace'
 
-type OverlayScreen = 'none' | 'profile' | 'new-booking'
+const TAB_ROUTES: Record<NavTab, string> = {
+  home: '/',
+  schedule: '/schedule',
+  events: '/events',
+  bookings: '/bookings',
+}
+
+function getActiveTab(pathname: string): NavTab {
+  if (pathname.startsWith('/schedule')) return 'schedule'
+  if (pathname.startsWith('/events')) return 'events'
+  if (pathname.startsWith('/bookings')) return 'bookings'
+  return 'home'
+}
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<NavTab>('home')
-  const [overlayScreen, setOverlayScreen] = useState<OverlayScreen>('none')
+  const location = useLocation()
+  const navigate = useNavigate()
   const [role, setRole] = useState<'student' | 'admin'>('student')
 
   useEffect(() => {
@@ -28,25 +41,42 @@ export function App() {
       .catch(() => undefined)
   }, [])
 
+  const handleTabChange = (tab: NavTab) => {
+    navigate(TAB_ROUTES[tab])
+  }
+
+  const handleCloseOverlay = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/')
+    }
+  }
+
+  const isOverlayRoute = location.pathname === '/profile' || location.pathname === '/bookings/new'
+  const activeTab = getActiveTab(location.pathname)
+
   return (
     <div className="min-h-screen bg-brand-bg">
-      {overlayScreen === 'profile' ? (
-        <ProfilePage onClose={() => setOverlayScreen('none')} />
-      ) : overlayScreen === 'new-booking' ? (
-        <NewBookingPage onClose={() => setOverlayScreen('none')} />
-      ) : (
-        <>
-          {activeTab === 'home' && (
-            <HomePage onTabChange={setActiveTab} onProfileOpen={() => setOverlayScreen('profile')} />
-          )}
-          {activeTab === 'schedule' && <SchedulePage onCreateBooking={() => setOverlayScreen('new-booking')} />}
-          {activeTab === 'events' && <EventsPage role={role} />}
-          {activeTab === 'bookings' && (
-            <BookingsPage role={role} onCreateBooking={() => setOverlayScreen('new-booking')} />
-          )}
-          <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
-        </>
-      )}
+      <Routes>
+        <Route
+          path="/"
+          element={<HomePage onTabChange={handleTabChange} onProfileOpen={() => navigate('/profile')} />}
+        />
+        <Route
+          path="/schedule"
+          element={<SchedulePage onCreateBooking={() => navigate('/bookings/new')} />}
+        />
+        <Route path="/events" element={<EventsPage role={role} />} />
+        <Route
+          path="/bookings"
+          element={<BookingsPage role={role} onCreateBooking={() => navigate('/bookings/new')} />}
+        />
+        <Route path="/bookings/new" element={<NewBookingPage onClose={handleCloseOverlay} />} />
+        <Route path="/profile" element={<ProfilePage onClose={handleCloseOverlay} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      {!isOverlayRoute && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
     </div>
   )
 }
