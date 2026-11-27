@@ -8,7 +8,7 @@ export function RejectRequestModal({ request, onClose, onSubmit, busy, error }: 
   const [title, setTitle] = useState('')
   const [invalid, setInvalid] = useState(false)
   return <Modal title="Отклонить заявку" onClose={onClose} busy={busy}>
-    <div className="mb-4 rounded-2xl bg-[#f4f4f8] p-3"><p className="text-[16px] font-semibold">{request.lastName} {request.firstName}</p><p className="mt-1 text-[13px] text-brand-muted">{request.dateLabel} · {request.fromTime}–{request.toTime} · {request.spaceName}</p></div>
+    <div className="mb-4 rounded-2xl bg-[#f4f4f8] p-3"><p className="mb-2 break-words text-[16px] font-semibold">{request.title?.trim() || 'Без названия'}</p><p className="text-[14px]">{request.lastName} {request.firstName}</p><p className="mt-1 text-[13px] text-brand-muted">{request.dateLabel} · {request.fromTime}–{request.toTime} · {request.spaceName}</p></div>
     <form onSubmit={event => { event.preventDefault(); if (!reason.trim()) { setInvalid(true); return } onSubmit(reason.trim(), title.trim() || undefined) }}>
       <label className="field-label">Краткая причина <span className="text-brand-muted">(необязательно)</span><input className="field-input mt-2 mb-4" maxLength={150} disabled={busy} value={title} onChange={event => setTitle(event.target.value)} /></label>
       <label className="field-label">Причина отказа<textarea autoFocus required maxLength={300} disabled={busy} className="field-input mt-2 min-h-28 py-3" value={reason} onChange={event => { setReason(event.target.value); setInvalid(false) }} /></label>

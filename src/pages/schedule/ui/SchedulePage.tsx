@@ -25,6 +25,7 @@ export function SchedulePage() {
   }
   return <main className="page-shell schedule-page relative">
     <ScheduleHeader viewMode={viewMode} onViewModeChange={setViewMode} selectedDate={selectedDate} onDateChange={setSelectedDate} spaces={view.spaces} />
+    <div aria-label="Статусы заявок" className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-brand-muted"><span className="flex items-center gap-1.5"><i aria-hidden="true" className="booking-slot-pending size-2.5 rounded-full border" />На рассмотрении</span><span className="flex items-center gap-1.5"><i aria-hidden="true" className="booking-slot-approved size-2.5 rounded-full border" />Подтверждена</span></div>
     {state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : view.spaces.length ?
       <ScheduleGrid spaces={view.spaces} items={view.items} selectedDate={selectedDate} viewMode={viewMode} onSelectSlot={book} />
       : <EmptyState title="Нет доступных помещений" />}

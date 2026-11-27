@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { availabilityForReschedule, createBookingPayload, validateBookingDraft } from '@/features/create-booking/model/booking'
 import type { NewBookingDraft } from '@/entities/booking-draft'
 
-const draft: NewBookingDraft = { spaceId: 2, fullName: 'Пользователь VK', dateISO: '2026-12-01',
+const draft: NewBookingDraft = { spaceId: 2, firstName: 'Пользователь', lastName: 'VK', dateISO: '2026-12-01',
   dateLabel: '', fromTime: '15:00', toTime: '16:30', eventTitle: 'Защита проекта',
   purpose: 'Репетиция', peopleCount: 4, peopleLimit: 8 }
 const availability = { space_id: 2, date: '2026-12-01', open_time: '09:00', close_time: '22:00',
@@ -10,6 +10,13 @@ const availability = { space_id: 2, date: '2026-12-01', open_time: '09:00', clos
 const now = new Date('2026-11-27T12:00:00Z')
 
 describe('booking contract', () => {
+  it('sends edited applicant names without modifying the VK profile', () => {
+    expect(createBookingPayload({ ...draft, firstName: '  Мария ', lastName: ' Петрова-Соколова ' })).toMatchObject({ first_name: 'Мария', last_name: 'Петрова-Соколова' })
+  })
+  it('requires both applicant names and limits each to 100 Unicode characters', () => {
+    expect(validateBookingDraft({ ...draft, firstName: ' ', lastName: 'Я'.repeat(101) }, availability, now)).toMatchObject({ first_name: expect.any(String), last_name: expect.any(String) })
+    expect(validateBookingDraft({ ...draft, firstName: 'Маша', lastName: 'Я'.repeat(100) }, availability, now)).toEqual({})
+  })
   it('sends the entered title and Moscow offset, independent of device timezone', () => {
     expect(createBookingPayload(draft)).toMatchObject({ title: 'Защита проекта',
       starts_at: '2026-12-01T15:00:00+03:00', ends_at: '2026-12-01T16:30:00+03:00', space_id: 2 })

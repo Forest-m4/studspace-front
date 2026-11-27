@@ -36,7 +36,7 @@ export function mapApiScheduleToView(schedule?: components['schemas']['api.Sched
   return { spaces, items: schedule?.items?.map(item => ({ id: item.booking_id!, startTime: item.starts_at ?? '', endTime: item.ends_at ?? '', spaceId: item.space_id!, spaceName: spaces.find(s => s.id === item.space_id)?.name ?? '', title: item.title ?? '', status: item.status, ownerName: item.owner_name, type: 'booking', isMine: item.is_mine })) ?? [] }
 }
 export function mapApiBookingsToMyBookings(items: ApiBooking[] | undefined, tab: MyBookingTab): MyBooking[] {
-  return items?.map(item => ({ id: String(item.booking_id), bookingId: item.booking_id, tab, status: item.status ?? 'pending',
+  return items?.map(item => ({ id: String(item.booking_id), bookingId: item.booking_id, firstName: item.first_name, lastName: item.last_name, tab, status: item.status ?? 'pending',
     createdAtLabel: formatCreatedAt(item.created_at), dateTimeLabel: formatShortDateTime(item.starts_at, item.ends_at),
     spaceAndPeople: (item.space?.name ?? 'Помещение') + ' · ' + (item.people_count ?? 0) + ' чел.',
     title: item.title, purpose: item.purpose ?? '', peopleCount: item.people_count, rejectReason: item.reject_reason?.text,
@@ -53,7 +53,7 @@ export function mapApiAdminBookingToRequest(booking?: components['schemas']['api
     vkUserId: booking?.user?.vk_user_id, createdAtLabel: formatCreatedAt(booking?.created_at), spaceName: booking?.space?.name ?? '',
     capacityLabel: capacity ? 'до ' + capacity + ' чел.' : '', lastName: booking?.last_name ?? '', firstName: booking?.first_name ?? '',
     dateLabel: formatDateLabel(booking?.starts_at), fromTime: formatTime(booking?.starts_at), toTime: formatTime(booking?.ends_at),
-    purpose: booking?.purpose ?? '', peopleCount: booking?.people_count ?? 0, peopleLimit: capacity,
+    title: booking?.title ?? '', purpose: booking?.purpose ?? '', peopleCount: booking?.people_count ?? 0, peopleLimit: capacity,
     warningText: booking?.conflicts?.map(item => 'Пересекается с заявкой ' + (item.owner_name || '№' + item.booking_id) + ' (' + formatTime(item.starts_at) + '–' + formatTime(item.ends_at) + ')').join('\n') || undefined,
     decisionReason: booking?.reject_reason?.text, decisionReasonTitle: booking?.reject_reason?.title,
     decisionMeta: decision?.at ? (decision.by?.first_name || 'Администратор') + ' · ' + formatDateLabel(decision.at) + ', ' + formatTime(decision.at) : undefined }

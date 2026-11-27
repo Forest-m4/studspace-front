@@ -1,0 +1,2 @@
+# Preserve patch bytes; unified diff context contains intentional whitespace.
+docs/patches/*.patch -text -whitespace

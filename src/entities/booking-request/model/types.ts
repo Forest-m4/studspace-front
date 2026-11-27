@@ -16,6 +16,7 @@ export interface BookingRequest {
   dateLabel: string
   fromTime: string
   toTime: string
+  title?: string
   purpose: string
   peopleCount: number
   peopleLimit?: number

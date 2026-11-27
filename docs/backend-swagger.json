@@ -1508,6 +1508,18 @@
         "api.CreateBookingRequest": {
             "type": "object",
             "properties": {
+                "first_name": {
+                    "description": "Имя для этой заявки; если не передано, берётся из профиля VK",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
+                "last_name": {
+                    "description": "Фамилия для этой заявки; если не передана, берётся из профиля VK",
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100
+                },
                 "ends_at": {
                     "type": "string"
                 },

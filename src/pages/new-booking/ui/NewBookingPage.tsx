@@ -26,7 +26,8 @@ export function NewBookingPage({ onClose }: NewBookingPageProps) {
   const [storedDraft, setDraft] = useState<NewBookingDraft>(() => {
     const candidate = params.get('date') || (source?.startsAt && toISODate(new Date(source.startsAt))) || today
     const validDate = /^\d{4}-\d{2}-\d{2}$/.test(candidate) && Number.isFinite(Date.parse(candidate + 'T12:00:00+03:00')) && toISODate(new Date(candidate + 'T12:00:00+03:00')) === candidate
-    return { spaceId: Number(params.get('spaceId')) || source?.spaceId || 0, fullName: [user.first_name, user.last_name].filter(Boolean).join(' '),
+    return { spaceId: Number(params.get('spaceId')) || source?.spaceId || 0,
+      firstName: source?.firstName ?? user.first_name ?? '', lastName: source?.lastName ?? user.last_name ?? '',
       dateISO: validDate && candidate >= today ? candidate : today, dateLabel: '', fromTime: params.get('from') || (source?.startsAt ? formatTime(source.startsAt) : ''), toTime: params.get('to') || (source?.endsAt ? formatTime(source.endsAt) : ''),
       eventTitle: source?.title || '', purpose: source?.purpose || '', peopleCount: source?.peopleCount || 1, peopleLimit: 0 }
   })

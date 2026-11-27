@@ -31,7 +31,13 @@ export function NewBookingForm({ spaceOptions, draft, onChange, onOpenDatePicker
           </button>
         })}</div>{fieldError('space_id')}
       </fieldset>
-      <label className="field-label">Имя и фамилия<input className="field-input mt-2" aria-label="Имя и фамилия" value={draft.fullName} readOnly /><span className="mt-1 block text-[12px] text-brand-muted">Из профиля ВКонтакте</span></label>
+      <div>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="field-label">Имя<input className="field-input mt-2" autoComplete="given-name" value={draft.firstName} maxLength={100} required readOnly={reschedule} disabled={busy} aria-invalid={Boolean(fields.first_name)} aria-describedby={fields.first_name ? 'error-first_name' : 'booking-name-hint'} onChange={event => change({ firstName: event.target.value })} />{fieldError('first_name')}</label>
+          <label className="field-label">Фамилия<input className="field-input mt-2" autoComplete="family-name" value={draft.lastName} maxLength={100} required readOnly={reschedule} disabled={busy} aria-invalid={Boolean(fields.last_name)} aria-describedby={fields.last_name ? 'error-last_name' : 'booking-name-hint'} onChange={event => change({ lastName: event.target.value })} />{fieldError('last_name')}</label>
+        </div>
+        <p id="booking-name-hint" className="mt-1 text-[12px] text-brand-muted">{reschedule ? 'Имя из исходной заявки. При переносе меняются помещение, дата и время.' : 'Можно изменить для этой заявки. Данные профиля не изменятся.'}</p>
+      </div>
       <div><p className="field-label mb-2">Дата</p><button type="button" disabled={busy} onClick={onOpenDatePicker} className="field-input flex items-center justify-between text-left"><span className="flex items-center gap-2"><CalendarDays size={17} />{draft.dateLabel}</span><ChevronDown size={17} /></button></div>
       <div className="grid grid-cols-2 gap-3">
         <label className="field-label">С<input className="field-input mt-2" aria-invalid={Boolean(fields.starts_at)} aria-describedby={fields.starts_at ? 'error-starts_at' : undefined} type="time" required step={stepMinutes * 60} value={draft.fromTime} disabled={busy} onChange={event => change({ fromTime: event.target.value })} />{fieldError('starts_at')}</label>
