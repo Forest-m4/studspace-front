@@ -1627,10 +1627,6 @@ export interface components {
             starts_at?: string;
         };
         "api.CreateBookingRequest": {
-            /** @description Имя для этой заявки; если не передано, берётся из профиля VK */
-            first_name?: string;
-            /** @description Фамилия для этой заявки; если не передана, берётся из профиля VK */
-            last_name?: string;
             /** Format: date-time */
             ends_at: string;
             people_count: number;

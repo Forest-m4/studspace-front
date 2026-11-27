@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { BookingItem } from '@/entities/booking'
 import type { Booking, ScheduleSpace } from '@/entities/schedule'
 import { formatTime, shiftDate, toISODate, weekRange } from '@/shared/lib/format'
-interface Props { spaces: ScheduleSpace[]; items: Booking[]; selectedDate: string; viewMode: 'day' | 'week'; onSelectSlot: (date: string, spaceId: number, from: string, to: string) => void }
+interface Props { spaces: ScheduleSpace[]; items: Booking[]; selectedDate: string; viewMode: 'day' | 'week'; onSelectSlot: (date: string, spaceId: number, from: string, to: string) => void; onSelectBooking: (booking: Booking) => void }
 const START = 8, END = 22, HEIGHT = 60
-export function ScheduleGrid({ spaces, items, selectedDate, viewMode, onSelectSlot }: Props) {
+export function ScheduleGrid({ spaces, items, selectedDate, viewMode, onSelectSlot, onSelectBooking }: Props) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(timer) }, [])
   const dates = viewMode === 'day' ? [selectedDate] : Array.from({ length: 7 }, (_, i) => shiftDate(weekRange(selectedDate).from, i))
@@ -37,7 +37,10 @@ export function ScheduleGrid({ spaces, items, selectedDate, viewMode, onSelectSl
             const top = (minutes(item.startTime) - START * 60) / 60 * HEIGHT
             const height = (minutes(item.endTime) - minutes(item.startTime)) / 60 * HEIGHT
             if (top >= (END - START) * HEIGHT || top + height <= 0) return null
-            return <div key={item.id} className="pointer-events-none absolute left-[3%] z-10 w-[94%]" style={{ top: Math.max(0, top), height: Math.max(24, Math.min(height + Math.min(0, top), (END - START) * HEIGHT - Math.max(0, top)) - 3) }}><BookingItem item={item} variant="grid" /></div>
+            return <div key={item.id} className="absolute left-[3%] z-10 w-[94%]" style={{ top: Math.max(0, top), height: Math.max(24, Math.min(height + Math.min(0, top), (END - START) * HEIGHT - Math.max(0, top)) - 3) }}>
+              <BookingItem item={item} variant="grid" />
+              <button type="button" aria-label={'Открыть заявку «' + (item.title || 'Без названия') + '», ' + formatTime(item.startTime) + '–' + formatTime(item.endTime)} onClick={() => onSelectBooking(item)} className="absolute inset-0 rounded-md hover:bg-black/5 focus-visible:outline-offset-1" />
+            </div>
           })}
           {date === toISODate(now) && currentMinute >= START * 60 && currentMinute <= END * 60 && <div aria-label="Текущее время" className="pointer-events-none absolute left-0 right-0 z-20 border-t-2 border-brand-primary" style={{ top: (currentMinute / 60 - START) * HEIGHT }} />}
         </div>

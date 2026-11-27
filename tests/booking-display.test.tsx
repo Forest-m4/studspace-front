@@ -22,7 +22,7 @@ it.each(['day', 'week'] as const)('distinguishes pending and approved slots in %
     { booking_id: 1, space_id: 1, title: 'Ожидает решения', status: 'pending', starts_at: '2099-12-01T15:00:00+03:00', ends_at: '2099-12-01T16:00:00+03:00', is_mine: true },
     { booking_id: 2, space_id: 1, title: 'Одобренная встреча', status: 'approved', starts_at: '2099-12-01T17:00:00+03:00', ends_at: '2099-12-01T18:00:00+03:00', is_mine: false },
   ] })
-  render(<ScheduleGrid {...view} selectedDate="2099-12-01" viewMode={viewMode} onSelectSlot={vi.fn()} />)
+  render(<ScheduleGrid {...view} selectedDate="2099-12-01" viewMode={viewMode} onSelectSlot={vi.fn()} onSelectBooking={vi.fn()} />)
   expect(screen.queryByRole('group', { name: /Ожидает решения.*На рассмотрении/ })).not.toBeNull()
   expect(screen.queryByRole('group', { name: /Одобренная встреча.*Подтверждена/ })).not.toBeNull()
 })

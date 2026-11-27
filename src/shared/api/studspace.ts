@@ -2,6 +2,8 @@ import { api } from './client'
 import { ApiRequestError } from './errors'
 import type { components } from './schema'
 export type AdminTab = 'new' | 'approved' | 'rejected'
+// Applicant names are sent by the form; persistence requires server support.
+export type CreateBookingInput = components['schemas']['api.CreateBookingRequest'] & { first_name: string; last_name: string }
 function required<T>(data: T | undefined): T {
   if (data === undefined) throw new ApiRequestError(502, 'Сервер вернул пустой ответ. Попробуйте ещё раз.')
   return data
@@ -27,7 +29,7 @@ export async function getMyBookings(tab: 'active' | 'history', cursor?: string) 
 export async function getAdminBookings(tab: AdminTab, cursor?: string) {
   const { data } = await api.GET('/admin/bookings', { params: { query: { tab, limit: 20, cursor } } }); return required(data)
 }
-export async function createBooking(body: components['schemas']['api.CreateBookingRequest']) {
+export async function createBooking(body: CreateBookingInput) {
   const { data } = await api.POST('/bookings', { body }); return required(data)
 }
 export async function withdrawBooking(id: number) {
