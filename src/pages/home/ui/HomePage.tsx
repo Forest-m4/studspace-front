@@ -1,87 +1,44 @@
-import { useEffect, useState } from 'react'
+import bridge from '@vkontakte/vk-bridge'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MOCK_TODAY_BOOKINGS } from '@/entities/booking'
-import type { Booking } from '@/entities/booking'
-import { MOCK_SPACES, spaceApi } from '@/entities/space'
-import type { Space } from '@/entities/space'
-import { MOCK_USER, userApi } from '@/entities/user'
-import type { User } from '@/entities/user'
+import { spaceApi } from '@/entities/space'
+import { userApi } from '@/entities/user'
+import { useSession } from '@/entities/user/model/session-context'
 import { mapApiHomeToSpaces, mapApiHomeToTodayBookings, mapApiUserToUser } from '@/shared/api/adapters'
+import { errorMessage } from '@/shared/api/errors'
 import { routes } from '@/shared/config'
+import { useAsyncData } from '@/shared/lib/useAsyncData'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
 import { AppHeader } from '@/widgets/app-header'
-import type { NavTab } from '@/widgets/bottom-nav'
 import { SpacesListSection } from '@/widgets/spaces-list'
 import { TodayBookingsSection } from '@/widgets/today-bookings'
 
-const TAB_ROUTES: Record<NavTab, string> = {
-  home: routes.home,
-  schedule: routes.schedule,
-  events: routes.events,
-  bookings: routes.bookings,
-}
-
-export interface HomePageProps {
-  onTabChange?: (tab: NavTab) => void
-  onProfileOpen?: () => void
-}
-
-export function HomePage({ onTabChange, onProfileOpen }: HomePageProps) {
+export function HomePage() {
   const navigate = useNavigate()
-  const [user, setUser] = useState<User>(MOCK_USER)
-  const [bookings, setBookings] = useState<Booking[]>(MOCK_TODAY_BOOKINGS)
-  const [spaces, setSpaces] = useState<Space[]>(MOCK_SPACES)
-
-  useEffect(() => {
-    Promise.all([spaceApi.getHome(), userApi.getMe()])
-      .then(([home, me]) => {
-        if (home) {
-          setBookings(mapApiHomeToTodayBookings(home))
-          setSpaces(mapApiHomeToSpaces(home))
-        }
-        if (me) {
-          setUser(mapApiUserToUser(me))
-        }
-      })
-      .catch(() => undefined)
-  }, [])
-
-  const handleNavigateTab = (tab: NavTab) => {
-    if (onTabChange) {
-      onTabChange(tab)
-      return
-    }
-    navigate(TAB_ROUTES[tab])
+  const { user, setUser } = useSession()
+  const data = useAsyncData(() => spaceApi.getHome(), 'home')
+  const [error, setError] = useState('')
+  const [updating, setUpdating] = useState(false)
+  const toggleNotifications = async () => {
+    if (updating) return
+    setUpdating(true); setError('')
+    try {
+      const allowed = !user.notifications_allowed
+      if (allowed && (bridge.isEmbedded() || bridge.isWebView())) await bridge.send('VKWebAppAllowNotifications')
+      await userApi.patchNotifications(allowed)
+      setUser({ ...user, notifications_allowed: allowed })
+    } catch (reason) { setError(errorMessage(reason)) }
+    finally { setUpdating(false) }
   }
-
-  const handleProfileOpen = () => {
-    if (onProfileOpen) {
-      onProfileOpen()
-      return
-    }
-    navigate(routes.profile)
-  }
-
-  return (
-    <main className="flex flex-col gap-4 max-w-160 w-full px-4 pt-6 pb-32 mx-auto">
-      <AppHeader
-        user={user}
-        hasNotifications={Boolean(user.notificationsAllowed)}
-        onNotificationsClick={() => {
-          userApi
-            .patchNotifications(!user.notificationsAllowed)
-            .then(() => setUser((prev) => ({ ...prev, notificationsAllowed: !prev.notificationsAllowed })))
-            .catch(() => undefined)
-        }}
-        onProfileClick={handleProfileOpen}
-      />
-      <TodayBookingsSection
-        bookings={bookings}
-        onViewAll={() => handleNavigateTab('schedule')}
-      />
-      <SpacesListSection
-        spaces={spaces}
-        onBook={() => handleNavigateTab('bookings')}
-      />
-    </main>
-  )
+  return <main className="page-shell flex flex-col gap-4">
+    <AppHeader user={mapApiUserToUser(user)} hasNotifications={user.notifications_allowed}
+      onProfileClick={() => navigate(routes.profile)} onNotificationsClick={() => { void toggleNotifications() }} notificationsBusy={updating} />
+    {error && <ErrorState message={error} />}
+    {data.loading ? <LoadingState /> : data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : <>
+      {(data.data?.today?.items?.length ?? 0) > 0 ? <TodayBookingsSection bookings={mapApiHomeToTodayBookings(data.data)} onViewAll={() => navigate(routes.schedule)} />
+        : <section><h2 className="mb-2 text-[20px] font-bold">Сегодня</h2><EmptyState title="Сегодня броней нет" text="Выберите помещение и отправьте заявку." /></section>}
+      {(data.data?.spaces?.length ?? 0) > 0 ? <SpacesListSection spaces={mapApiHomeToSpaces(data.data)} onBook={spaceId => navigate(routes.newBooking + '?spaceId=' + spaceId)} />
+        : <EmptyState title="Помещения пока недоступны" />}
+    </>}
+  </main>
 }

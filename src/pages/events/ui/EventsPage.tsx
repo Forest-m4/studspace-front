@@ -1,152 +1,30 @@
-import { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import {
-  eventApi,
-  MOCK_EVENTS,
-  MOCK_EVENTS_COUNT,
-  MOCK_EVENTS_WEEK,
-  MOCK_FEATURED_EVENT,
-} from '@/entities/event'
-import type { EventListItem, EventWeekDay, FeaturedEvent } from '@/entities/event'
-import { mapApiEventsToEventsView } from '@/shared/api/adapters'
-import { toISODate } from '@/shared/lib'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { eventApi } from '@/entities/event'
+import type { EventListItem } from '@/entities/event'
+import { formatDateLabel, formatTime, shiftDate, toISODate, weekRange } from '@/shared/lib/format'
+import { useAsyncData } from '@/shared/lib/useAsyncData'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
 import { EventsList } from '@/widgets/events-list'
 import { EventsOverview } from '@/widgets/events-overview'
-
-export interface EventsPageProps {
-  role?: 'student' | 'admin'
-}
-
-function getCurrentWeekRange() {
-  const today = new Date()
-  const from = new Date(today)
-  from.setDate(today.getDate() - ((today.getDay() + 6) % 7))
-  const to = new Date(from)
-  to.setDate(from.getDate() + 6)
-  return { from: toISODate(from), to: toISODate(to) }
-}
-
-export function EventsPage({ role }: EventsPageProps) {
-  const context = useOutletContext<{ role?: 'student' | 'admin' } | undefined>()
-  const currentRole = role ?? context?.role ?? 'student'
-  const [eventsCount, setEventsCount] = useState(MOCK_EVENTS_COUNT)
-  const [weekDays, setWeekDays] = useState<EventWeekDay[]>(MOCK_EVENTS_WEEK)
-  const [featuredEvent, setFeaturedEvent] = useState<FeaturedEvent>(MOCK_FEATURED_EVENT)
-  const [events, setEvents] = useState<EventListItem[]>(MOCK_EVENTS)
-
-  const reload = () => {
-    const { from, to } = getCurrentWeekRange()
-    eventApi
-      .getEvents(from, to)
-      .then((data) => {
-        if (!data) return
-        const mapped = mapApiEventsToEventsView(data)
-        setEventsCount(mapped.count)
-        setWeekDays(mapped.weekDays)
-        setFeaturedEvent(mapped.featured)
-        setEvents(mapped.list)
-      })
-      .catch(() => undefined)
-  }
-
-  useEffect(() => {
-    const { from, to } = getCurrentWeekRange()
-    eventApi
-      .getEvents(from, to)
-      .then((data) => {
-        if (!data) return
-        const mapped = mapApiEventsToEventsView(data)
-        setEventsCount(mapped.count)
-        setWeekDays(mapped.weekDays)
-        setFeaturedEvent(mapped.featured)
-        setEvents(mapped.list)
-      })
-      .catch(() => undefined)
-  }, [])
-
-  return (
-    <main className="max-w-160 w-full mx-auto px-4 pt-5 pb-32 flex flex-col gap-4">
-      <EventsOverview
-        eventsCount={eventsCount}
-        weekDays={weekDays}
-        featuredEvent={featuredEvent}
-      />
-      {currentRole === 'admin' && (
-        <div className="rounded-2xl bg-white p-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              eventApi
-                .createAdminEvent({
-                  title: 'Новая встреча',
-                  description: 'Создано из фронта',
-                  category: 'study',
-                  organizer: 'Админ',
-                  capacity: 20,
-                  space_id: 1,
-                  starts_at: new Date().toISOString(),
-                  ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-                })
-                .then(reload)
-                .catch(() => undefined)
-            }}
-            className="h-8 px-3 rounded-xl bg-[#eeedfc] text-brand-primary text-[13px] font-medium"
-          >
-            + Создать
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const first = events[0]
-              if (!first?.eventId) return
-              eventApi
-                .updateAdminEvent(first.eventId, {
-                  title: `${first.title} (апдейт)`,
-                  description: 'Изменено из фронта',
-                  category: 'study',
-                  organizer: 'Админ',
-                  capacity: 20,
-                  space_id: 1,
-                  starts_at: new Date().toISOString(),
-                  ends_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-                })
-                .then(reload)
-                .catch(() => undefined)
-            }}
-            className="h-8 px-3 rounded-xl bg-[#f4f4f8] text-brand-dark text-[13px] font-medium"
-          >
-            Изменить 1-е
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const first = events[0]
-              if (!first?.eventId) return
-              eventApi.cancelAdminEvent(first.eventId).then(reload).catch(() => undefined)
-            }}
-            className="h-8 px-3 rounded-xl bg-[#f8f8fc] text-[#dd596c] text-[13px] font-medium"
-          >
-            Отменить 1-е
-          </button>
-        </div>
-      )}
-      <EventsList
-        events={events}
-        onRegister={(event) => {
-          if (!event.eventId) return
-          const call = event.isRegistered
-            ? eventApi.unregisterEvent(event.eventId)
-            : eventApi.registerEvent(event.eventId)
-          call.then(reload).catch(() => undefined)
-        }}
-        onWaitlist={(event) => {
-          if (!event.eventId) return
-          const call = event.isSubscribed
-            ? eventApi.unsubscribeWaitlist(event.eventId)
-            : eventApi.subscribeWaitlist(event.eventId)
-          call.then(reload).catch(() => undefined)
-        }}
-      />
-    </main>
-  )
+export function EventsPage() {
+  const [date, setDate] = useState(() => toISODate(new Date()))
+  const [filter, setFilter] = useState(false)
+  const range = weekRange(date)
+  const state = useAsyncData(() => eventApi.getEvents(range.from, range.to), range.from + ':' + range.to)
+  const source = [...(state.data?.items ?? [])].sort((a, b) => Date.parse(a.starts_at!) - Date.parse(b.starts_at!))
+  const list: EventListItem[] = source.filter(item => !filter || toISODate(new Date(item.starts_at!)) === date).map(item => {
+    const day = toISODate(new Date(item.starts_at!))
+    return { id: String(item.booking_id), dateLabel: formatDateLabel(item.starts_at), day: String(Number(day.slice(8))), month: new Intl.DateTimeFormat('ru-RU', { month: 'short', timeZone: 'Europe/Moscow' }).format(new Date(item.starts_at!)).replace('.', ''), title: item.title ?? '', time: formatTime(item.starts_at) + '–' + formatTime(item.ends_at) }
+  })
+  const featured = state.data?.featured
+  return <main className="page-shell flex flex-col gap-4">
+    <div className="flex justify-end gap-2"><button aria-label="Предыдущая неделя" className="icon-button" onClick={() => { setDate(shiftDate(date, -7)); setFilter(false) }}><ChevronLeft size={18} /></button><button className="text-[13px] text-brand-primary" onClick={() => { setDate(toISODate(new Date())); setFilter(false) }}>Эта неделя</button><button aria-label="Следующая неделя" className="icon-button" onClick={() => { setDate(shiftDate(date, 7)); setFilter(false) }}><ChevronRight size={18} /></button></div>
+    <EventsOverview eventsCount={state.data?.week_total ?? 0} weekDays={Array.from({ length: 7 }, (_, i) => {
+      const iso = shiftDate(range.from, i)
+      return { short: new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'Europe/Moscow' }).format(new Date(iso + 'T12:00:00+03:00')), day: Number(iso.slice(8)), active: iso === date }
+    })} onDaySelect={index => { setDate(shiftDate(range.from, index)); setFilter(true) }} featuredEvent={featured ? { badge: 'Сегодня', title: featured.title ?? '', startTime: formatTime(featured.starts_at), endTime: formatTime(featured.ends_at) } : undefined} />
+    {filter && <button className="self-start text-[13px] text-brand-primary" onClick={() => setFilter(false)}>Показать всю неделю</button>}
+    {state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : list.length ? <EventsList events={list} /> : <EmptyState title="Событий пока нет" text={filter ? 'В выбранный день нет мероприятий.' : 'На этой неделе нет одобренных броней.'} />}
+  </main>
 }

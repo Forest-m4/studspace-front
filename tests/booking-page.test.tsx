@@ -1,0 +1,29 @@
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { afterEach, expect, it, vi } from 'vitest'
+import { NewBookingPage } from '@/pages/new-booking'
+import { SessionContext } from '@/entities/user/model/session-context'
+import { bookingApi } from '@/entities/booking'
+import { spaceApi } from '@/entities/space'
+import { ApiRequestError } from '@/shared/api/errors'
+
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
+
+it('keeps the entered booking after a server refusal, and navigates only on success', async () => {
+  vi.spyOn(spaceApi, 'getSpaces').mockResolvedValue([{ space_id: 2, name: 'Зал Б', capacity: 8 }])
+  vi.spyOn(spaceApi, 'getSpaceAvailability').mockResolvedValue({ space_id: 2, date: '2099-12-01', open_time: '09:00', close_time: '22:00', slot_step_min: 30, busy: [] })
+  const create = vi.spyOn(bookingApi, 'createBooking').mockRejectedValueOnce(new ApiRequestError(409, 'Время уже занято')).mockResolvedValueOnce({ booking_id: 8 })
+  const router = createMemoryRouter([{ path: '/bookings/new', element: <NewBookingPage /> }, { path: '/bookings', element: <h1>Ваши заявки</h1> }], { initialEntries: ['/bookings/new?spaceId=2&date=2099-12-01&from=15:00&to=16:00'] })
+  render(<SessionContext.Provider value={{ user: { user_id: 1, first_name: 'Анна', last_name: 'Казак' }, setUser: vi.fn() }}><RouterProvider router={router} /></SessionContext.Provider>)
+  fireEvent.change(await screen.findByLabelText('Название мероприятия'), { target: { value: 'Встреча клуба' } })
+  fireEvent.change(screen.getByLabelText('Для чего'), { target: { value: 'Обсудить проект' } })
+  const submit = screen.getByRole('button', { name: 'Отправить заявку' })
+  await waitFor(() => expect(submit.hasAttribute('disabled')).toBe(false))
+  fireEvent.click(submit)
+  expect(await screen.findByRole('alert')).toBeTruthy()
+  expect(router.state.location.pathname).toBe('/bookings/new')
+  expect((screen.getByLabelText('Название мероприятия') as HTMLInputElement).value).toBe('Встреча клуба')
+  fireEvent.click(submit)
+  await screen.findByRole('heading', { name: 'Ваши заявки' })
+  expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Встреча клуба', starts_at: '2099-12-01T15:00:00+03:00' }))
+})

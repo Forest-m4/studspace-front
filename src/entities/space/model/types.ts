@@ -7,7 +7,8 @@ export interface Space {
   id: string | number
   name: string
   capacity: number
-  status: 'free' | 'busy'
+  status: 'free' | 'busy' | 'closed'
   statusLabel: string
+  photoUrl?: string
   equipment: SpaceEquipment[]
 }

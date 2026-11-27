@@ -1,115 +1,25 @@
-import { useMemo } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import type { StudentProfile } from '@/entities/profile'
-
-export interface ProfileEditorProps {
-  profile: StudentProfile
-  onChange: (next: StudentProfile) => void
-  onBack: () => void
-  onSave: () => void
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[13px] text-brand-muted">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        className="h-11 rounded-xl border border-transparent bg-[#f4f4f8] px-3 text-[18px] text-brand-dark outline-none focus:border-[#c9c8f4]"
-      />
-    </label>
-  )
-}
-
-export function ProfileEditor({ profile, onChange, onBack, onSave }: ProfileEditorProps) {
-  const initials = useMemo(
-    () => `${profile.firstName[0] ?? ''}${profile.lastName[0] ?? ''}`.toUpperCase() || 'П',
-    [profile.firstName, profile.lastName],
-  )
-
-  const fullName = `${profile.lastName} ${profile.firstName}`.trim()
-
-  return (
-    <div className="max-w-160 w-full mx-auto px-4 pt-5 pb-26 flex flex-col gap-4">
-      <header className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors"
-        >
-          <ArrowLeft size={20} className="text-brand-dark" />
-        </button>
-        <h1 className="text-[34px] leading-none font-bold text-brand-dark">Профиль</h1>
-      </header>
-
-      <section className="flex flex-col items-center">
-        <div className="h-16 w-16 rounded-full bg-[#eeedfc] flex items-center justify-center text-brand-primary text-[38px] font-medium">
-          {initials}
-        </div>
-        <p className="mt-3 text-[30px] leading-none font-semibold text-brand-dark">{fullName}</p>
-        <p className="mt-1 text-[16px] text-brand-muted">{profile.status}</p>
+import { ErrorState } from '@/shared/ui/async-state/AsyncState'
+export interface ProfileEditorProps { profile: StudentProfile; onChange: (next: StudentProfile) => void; onBack: () => void; onSave: () => void; busy?: boolean; error?: string; fields?: Record<string, string>; saved?: boolean }
+export function ProfileEditor({ profile, onChange, onBack, onSave, busy, error, fields = {}, saved }: ProfileEditorProps) {
+  const initials = ((profile.lastName[0] ?? '') + (profile.firstName[0] ?? '')).toUpperCase()
+  return <main className="page-shell form-page flex flex-col gap-4">
+    <header className="flex items-center gap-3"><button className="icon-button" aria-label="Назад" onClick={onBack} disabled={busy}><ArrowLeft size={21} /></button><h1 className="text-[22px] font-bold">Профиль</h1></header>
+    <section className="flex flex-col items-center"><span className="flex size-16 items-center justify-center rounded-full bg-[#eeedfc] text-[28px] font-bold text-brand-primary">{initials}</span><p className="mt-3 text-[20px] font-semibold">{profile.lastName} {profile.firstName}</p><p className="mt-1 text-[14px] text-brand-muted">{profile.status}</p></section>
+    <form onSubmit={event => { event.preventDefault(); onSave() }} className="flex flex-col gap-4" aria-busy={busy}>
+      <section className="flex flex-col gap-3 rounded-3xl bg-white p-4">
+        <h2 className="text-[16px] font-semibold">Личные данные</h2>
+        <div className="grid grid-cols-2 gap-3"><label className="field-label">Фамилия<input className="field-input mt-2 text-brand-muted!" value={profile.lastName} readOnly /></label><label className="field-label">Имя<input className="field-input mt-2 text-brand-muted!" value={profile.firstName} readOnly /></label></div>
+        <p className="text-[12px] text-brand-muted">Имя и фамилия берутся из ВКонтакте.</p>
+        <label className="field-label">Отчество <span className="text-brand-muted">необязательно</span><input className="field-input mt-2" disabled={busy} maxLength={100} aria-invalid={Boolean(fields.patronymic)} value={profile.middleName} onChange={event => onChange({ ...profile, middleName: event.target.value })} />{fields.patronymic && <span className="field-error">{fields.patronymic}</span>}</label>
+        <label className="field-label">Должность или статус<input className="field-input mt-2" disabled={busy} maxLength={150} aria-invalid={Boolean(fields.occupation)} value={profile.status} onChange={event => onChange({ ...profile, status: event.target.value })} />{fields.occupation && <span className="field-error">{fields.occupation}</span>}</label>
+        <p className="text-[12px] text-brand-muted">Например: студент, группа · член студсовета · руководитель клуба</p>
       </section>
-
-      <section className="rounded-3xl bg-white p-4 flex flex-col gap-3">
-        <h2 className="text-[22px] leading-none font-semibold text-brand-dark">Личные данные</h2>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Field
-            label="Фамилия"
-            value={profile.lastName}
-            onChange={(lastName) => onChange({ ...profile, lastName })}
-          />
-          <Field
-            label="Имя"
-            value={profile.firstName}
-            onChange={(firstName) => onChange({ ...profile, firstName })}
-          />
-        </div>
-
-        <p className="text-[13px] text-brand-muted">
-          <span className="text-[#4a76a8] font-medium">vk</span> {profile.vkDisplayName} - из ВКонтакте, чёрным - изменено вами
-        </p>
-
-        <Field
-          label="Отчество необязательно"
-          value={profile.middleName}
-          onChange={(middleName) => onChange({ ...profile, middleName })}
-        />
-
-        <Field
-          label="Должность или статус"
-          value={profile.status}
-          onChange={(status) => onChange({ ...profile, status })}
-        />
-
-        <p className="text-[13px] leading-4 text-brand-muted">
-          Например: студент, группа - член студсовета - руководитель клуба
-        </p>
-      </section>
-
-      <p className="text-[14px] text-brand-muted text-center">
-        Эти данные автоматически подставляются в заявки на бронирование
-      </p>
-
-      <button
-        type="button"
-        onClick={onSave}
-        className="h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors"
-      >
-        Сохранить изменения
-      </button>
-    </div>
-  )
+      <p className="text-center text-[13px] text-brand-muted">Эти данные автоматически подставляются в заявки на бронирование.</p>
+      {error && <ErrorState message={error} />}
+      {saved && <p role="status" className="success-message">Изменения сохранены.</p>}
+      <button type="submit" className="primary-action" disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить изменения'}</button>
+    </form>
+  </main>
 }

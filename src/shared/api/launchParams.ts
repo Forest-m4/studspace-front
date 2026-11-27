@@ -1,10 +1,10 @@
 import { env } from '@/shared/config'
-
-const initialParams = typeof window !== 'undefined' ? window.location.search.slice(1) : ''
-
+function signedParams(raw: string) {
+  const params = new URLSearchParams(raw)
+  return params.has('sign') && params.has('vk_user_id') ? raw : ''
+}
+const initialParams = typeof window === 'undefined' ? '' : signedParams(window.location.search.slice(1))
 export function getLaunchParams(): string {
-  const params = window.location.search.slice(1) || initialParams
-  if (params) return params
-
-  return env.isDev ? env.devLaunchParams : ''
+  const current = typeof window === 'undefined' ? '' : signedParams(window.location.search.slice(1))
+  return initialParams || current || (env.isDev ? signedParams(env.devLaunchParams) : '')
 }

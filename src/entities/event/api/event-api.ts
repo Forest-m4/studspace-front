@@ -1,21 +1,2 @@
-import {
-  cancelAdminEvent,
-  createAdminEvent,
-  getEvents,
-  registerEvent,
-  subscribeWaitlist,
-  unregisterEvent,
-  unsubscribeWaitlist,
-  updateAdminEvent,
-} from '@/shared/api/studspace'
-
-export const eventApi = {
-  getEvents,
-  registerEvent,
-  unregisterEvent,
-  subscribeWaitlist,
-  unsubscribeWaitlist,
-  createAdminEvent,
-  updateAdminEvent,
-  cancelAdminEvent,
-}
+import { getBookingFeed } from '@/shared/api/studspace'
+export const eventApi = { getEvents: getBookingFeed }

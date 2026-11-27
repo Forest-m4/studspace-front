@@ -1,199 +1,55 @@
-import { CalendarDays, ChevronDown, Clock3, Minus, Plus, X } from 'lucide-react'
-import { BOOKING_PURPOSE_LIMIT, BOOKING_TIME_WARNING } from '@/entities/booking-draft'
+import { CalendarDays, ChevronDown, Minus, Plus, X } from 'lucide-react'
 import type { BookingSpaceOption, NewBookingDraft } from '@/entities/booking-draft'
 import { cn } from '@/shared/lib'
+import { ErrorState } from '@/shared/ui/async-state/AsyncState'
 
 export interface NewBookingFormProps {
-  spaceOptions: BookingSpaceOption[]
-  draft: NewBookingDraft
-  onChange: (next: NewBookingDraft) => void
-  onOpenDatePicker: () => void
-  onSubmit: () => void
-  onClose: () => void
+  spaceOptions: BookingSpaceOption[]; draft: NewBookingDraft; onChange: (next: NewBookingDraft) => void
+  onOpenDatePicker: () => void; onSubmit: () => void; onClose: () => void
+  fields?: Record<string, string>; error?: string; busy?: boolean; unavailable?: boolean
+  availabilityText?: string; stepMinutes?: number; reschedule?: boolean
 }
-
-function FieldLabel({ children }: { children: string }) {
-  return <p className="text-[13px] text-brand-dark font-medium">{children}</p>
-}
-
-export function NewBookingForm({
-  spaceOptions,
-  draft,
-  onChange,
-  onOpenDatePicker,
-  onSubmit,
-  onClose,
-}: NewBookingFormProps) {
-  const purposeLength = draft.purpose.length
-
-  const handlePeopleChange = (delta: number) => {
-    const nextCount = Math.max(1, Math.min(draft.peopleLimit, draft.peopleCount + delta))
-    onChange({ ...draft, peopleCount: nextCount })
-  }
-
-  return (
-    <main className="max-w-160 w-full mx-auto px-4 pt-4 pb-30 flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-[34px] leading-none font-bold text-brand-dark">Новая бронь</h1>
-        <button
-          type="button"
-          onClick={onClose}
-          className="h-8 w-8 rounded-full bg-[#f2f2f8] text-brand-muted inline-flex items-center justify-center hover:bg-[#ececf3] transition-colors"
-          aria-label="Закрыть"
-        >
-          <X size={16} />
-        </button>
-      </header>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Помещение</FieldLabel>
-        <div className="grid grid-cols-2 gap-2">
-          {spaceOptions.map((option) => {
-            const isActive = draft.spaceId === option.id
-            const dotColor = option.color === 'violet' ? 'bg-[#6f6eea]' : 'bg-[#b8d415]'
-            const peopleLimit = Number(option.capacityLabel.match(/\d+/)?.[0] ?? draft.peopleLimit)
-
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() =>
-                  onChange({
-                    ...draft,
-                    spaceId: option.id,
-                    peopleLimit,
-                    peopleCount: Math.min(draft.peopleCount, peopleLimit),
-                  })
-                }
-                className={cn(
-                  'rounded-2xl border px-3 py-2 text-left transition-colors',
-                  isActive
-                    ? 'border-brand-primary bg-[#f6f6ff]'
-                    : 'border-[#ececf3] bg-white hover:bg-[#fbfbff]',
-                )}
-              >
-                <p className="text-[18px] text-brand-dark font-medium inline-flex items-center gap-2">
-                  <span className={cn('h-2 w-2 rounded-full', dotColor)} />
-                  {option.name}
-                </p>
-                <p className="mt-1 text-[13px] text-brand-muted">{option.capacityLabel}</p>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Имя и фамилия</FieldLabel>
-        <input
-          value={draft.fullName}
-          onChange={(event) => onChange({ ...draft, fullName: event.target.value })}
-          className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark outline-none border border-transparent focus:border-[#cbcaf5]"
-        />
-        <p className="text-[13px] text-brand-muted">Из профиля ВКонтакте</p>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Дата</FieldLabel>
-        <button
-          type="button"
-          onClick={onOpenDatePicker}
-          className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark inline-flex items-center justify-between"
-        >
-          <span className="inline-flex items-center gap-2">
-            <CalendarDays size={15} className="text-brand-muted" />
-            {draft.dateLabel}
-          </span>
-          <ChevronDown size={15} className="text-brand-muted" />
-        </button>
-      </section>
-
-      <section className="grid grid-cols-2 gap-2">
-        <div className="flex flex-col gap-2">
-          <FieldLabel>С</FieldLabel>
-          <label className="h-11 rounded-xl bg-[#f4f4f8] px-3 inline-flex items-center gap-2">
-            <Clock3 size={15} className="text-brand-muted" />
-            <input
-              type="time"
-              value={draft.fromTime}
-              onChange={(event) => onChange({ ...draft, fromTime: event.target.value })}
-              className="bg-transparent text-[18px] text-brand-dark outline-none w-full"
-            />
-          </label>
-        </div>
-        <div className="flex flex-col gap-2">
-          <FieldLabel>До</FieldLabel>
-          <label className="h-11 rounded-xl bg-[#f4f4f8] px-3 inline-flex items-center gap-2">
-            <Clock3 size={15} className="text-brand-muted" />
-            <input
-              type="time"
-              value={draft.toTime}
-              onChange={(event) => onChange({ ...draft, toTime: event.target.value })}
-              className="bg-transparent text-[18px] text-brand-dark outline-none w-full"
-            />
-          </label>
-        </div>
-      </section>
-
-      <p className="text-[12px] text-brand-muted inline-flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#b8d415]" />
-        {BOOKING_TIME_WARNING}
-      </p>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Название мероприятия</FieldLabel>
-        <input
-          value={draft.eventTitle}
-          onChange={(event) => onChange({ ...draft, eventTitle: event.target.value })}
-          className="h-11 rounded-xl bg-[#f4f4f8] px-3 text-[18px] text-brand-dark outline-none border border-transparent focus:border-[#cbcaf5]"
-        />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Для чего</FieldLabel>
-        <div className="rounded-xl bg-[#f4f4f8] border border-transparent focus-within:border-[#cbcaf5] px-3 py-2">
-          <textarea
-            value={draft.purpose}
-            onChange={(event) => onChange({ ...draft, purpose: event.target.value.slice(0, BOOKING_PURPOSE_LIMIT) })}
-            className="w-full min-h-16 resize-none bg-transparent text-[18px] text-brand-dark outline-none"
-          />
-          <p className="text-[12px] text-brand-muted text-right">
-            {purposeLength} / {BOOKING_PURPOSE_LIMIT}
-          </p>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <FieldLabel>Сколько человек</FieldLabel>
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-[#f4f4f8] h-10 px-2 inline-flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handlePeopleChange(-1)}
-              className="h-6 w-6 rounded-md bg-white text-brand-dark inline-flex items-center justify-center"
-            >
-              <Minus size={13} />
-            </button>
-            <span className="text-[18px] w-6 text-center text-brand-dark">{draft.peopleCount}</span>
-            <button
-              type="button"
-              onClick={() => handlePeopleChange(1)}
-              className="h-6 w-6 rounded-md bg-white text-brand-dark inline-flex items-center justify-center"
-            >
-              <Plus size={13} />
-            </button>
-          </div>
-          <span className="text-[13px] text-brand-muted">максимум {draft.peopleLimit}</span>
-        </div>
-      </section>
-
-      <button
-        type="button"
-        onClick={onSubmit}
-        className="mt-3 h-12 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold hover:bg-[#c8eb09] transition-colors"
-      >
-        Отправить заявку
-      </button>
-    </main>
-  )
+export function NewBookingForm({ spaceOptions, draft, onChange, onOpenDatePicker, onSubmit, onClose,
+  fields = {}, error, busy, unavailable, availabilityText, stepMinutes = 30, reschedule }: NewBookingFormProps) {
+  const fieldError = (name: string) => fields[name] ? <p id={'error-' + name} className="field-error" role="alert">{fields[name]}</p> : null
+  const change = (patch: Partial<NewBookingDraft>) => onChange({ ...draft, ...patch })
+  return <main className="page-shell form-page">
+    <header className="flex items-center justify-between">
+      <h1 className="text-[20px] font-bold">{reschedule ? 'Перенести бронь' : 'Новая бронь'}</h1>
+      <button type="button" onClick={onClose} disabled={busy} aria-label="Закрыть" className="icon-button"><X size={18} /></button>
+    </header>
+    <form className="mt-4 flex flex-col gap-4" onSubmit={event => { event.preventDefault(); onSubmit() }} noValidate aria-busy={busy}>
+      <fieldset disabled={busy} className="flex flex-col gap-2">
+        <legend className="field-label mb-2">Помещение</legend>
+        <div className="grid grid-cols-2 gap-3">{spaceOptions.map(option => {
+          const capacity = Number(option.capacityLabel.match(/\d+/)?.[0] ?? 0)
+          return <button key={option.id} type="button" aria-pressed={draft.spaceId === option.id}
+            onClick={() => change({ spaceId: option.id, peopleLimit: capacity, peopleCount: reschedule ? draft.peopleCount : Math.min(draft.peopleCount, capacity), fromTime: '', toTime: '' })}
+            className={cn('rounded-2xl border px-3 py-3 text-left', draft.spaceId === option.id ? 'border-2 border-brand-primary bg-[#eeedfc]' : 'border-brand-border bg-[#f4f4f8]')}>
+            <span className="flex items-center gap-2 text-[15px] font-semibold"><span className={cn('size-2 shrink-0 rounded-full', option.color === 'lime' ? 'bg-[#b8d415]' : 'bg-brand-primary')} />{option.name}</span>
+            <span className="mt-1 block text-[13px] text-brand-muted">{option.capacityLabel}</span>
+          </button>
+        })}</div>{fieldError('space_id')}
+      </fieldset>
+      <label className="field-label">Имя и фамилия<input className="field-input mt-2" aria-label="Имя и фамилия" value={draft.fullName} readOnly /><span className="mt-1 block text-[12px] text-brand-muted">Из профиля ВКонтакте</span></label>
+      <div><p className="field-label mb-2">Дата</p><button type="button" disabled={busy} onClick={onOpenDatePicker} className="field-input flex items-center justify-between text-left"><span className="flex items-center gap-2"><CalendarDays size={17} />{draft.dateLabel}</span><ChevronDown size={17} /></button></div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="field-label">С<input className="field-input mt-2" aria-invalid={Boolean(fields.starts_at)} aria-describedby={fields.starts_at ? 'error-starts_at' : undefined} type="time" required step={stepMinutes * 60} value={draft.fromTime} disabled={busy} onChange={event => change({ fromTime: event.target.value })} />{fieldError('starts_at')}</label>
+        <label className="field-label">До<input className="field-input mt-2" aria-invalid={Boolean(fields.ends_at)} aria-describedby={fields.ends_at ? 'error-ends_at' : undefined} type="time" required step={stepMinutes * 60} value={draft.toTime} disabled={busy} onChange={event => change({ toTime: event.target.value })} />{fieldError('ends_at')}</label>
+      </div>
+      {availabilityText && <p className="text-[12px] text-brand-muted" role="status">{availabilityText}</p>}
+      <label className="field-label">Название мероприятия<input className="field-input mt-2" aria-label="Название мероприятия" value={draft.eventTitle} maxLength={150} required readOnly={reschedule} disabled={busy} aria-invalid={Boolean(fields.title)} aria-describedby={fields.title ? 'error-title' : undefined} onChange={event => change({ eventTitle: event.target.value })} />{fieldError('title')}</label>
+      <label className="field-label">Для чего<textarea aria-label="Для чего" className="field-input mt-2 min-h-28 resize-y py-3" value={draft.purpose} maxLength={150} required readOnly={reschedule} disabled={busy} aria-invalid={Boolean(fields.purpose)} aria-describedby={fields.purpose ? 'error-purpose' : undefined} onChange={event => change({ purpose: event.target.value })} /><span className="mt-1 block text-right text-[12px] text-brand-muted">{[...draft.purpose].length} / 150</span>{fieldError('purpose')}</label>
+      <div><p className="field-label mb-2">Сколько человек</p><div className="flex items-center gap-3">
+        <div className="flex h-11 items-center gap-2 rounded-xl bg-[#f4f4f8] px-2">
+          <button type="button" aria-label="Меньше человек" disabled={busy || reschedule || draft.peopleCount <= 1} onClick={() => change({ peopleCount: draft.peopleCount - 1 })} className="counter-button"><Minus size={15} /></button>
+          <output aria-label="Количество человек" className="w-7 text-center font-semibold">{draft.peopleCount}</output>
+          <button type="button" aria-label="Больше человек" disabled={busy || reschedule || draft.peopleCount >= draft.peopleLimit} onClick={() => change({ peopleCount: draft.peopleCount + 1 })} className="counter-button"><Plus size={15} /></button>
+        </div><span className="text-[13px] text-brand-muted">максимум {draft.peopleLimit}</span>
+      </div>{fieldError('people_count')}</div>
+      {reschedule && <p className="text-[13px] text-brand-muted">Прежняя бронь сохранится, пока администратор не одобрит перенос.</p>}
+      {error && <ErrorState message={error} />}
+      <button type="submit" disabled={busy || unavailable} className="primary-action mt-2">{busy ? 'Отправляем…' : reschedule ? 'Отправить заявку на перенос' : 'Отправить заявку'}</button>
+    </form>
+  </main>
 }

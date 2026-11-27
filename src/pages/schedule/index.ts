@@ -1,1 +1,1 @@
-export { SchedulePage, type SchedulePageProps } from './ui/SchedulePage'
+export { SchedulePage } from './ui/SchedulePage'
