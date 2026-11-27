@@ -3,6 +3,14 @@ import type { components } from '@/shared/api/schema'
 import { clockMinutes, moscowDateTime, formatTime, toISODate } from '@/shared/lib/format'
 
 type Availability = components['schemas']['api.SpaceAvailability']
+export function includeScheduleBusy(availability: Availability, items: components['schemas']['api.ScheduleItem'][], excludedBookingId?: number): Availability {
+  const busy = [...(availability.busy ?? []), ...items.filter(item =>
+    item.space_id === availability.space_id && (excludedBookingId === undefined || item.booking_id !== excludedBookingId) &&
+    (item.status === 'pending' || item.status === 'approved') && item.starts_at && toISODate(new Date(item.starts_at)) === availability.date)
+    .map(item => ({ starts_at: item.starts_at, ends_at: item.ends_at }))]
+  const unique = new Map(busy.map(slot => [Date.parse(slot.starts_at ?? '') + ':' + Date.parse(slot.ends_at ?? ''), slot]))
+  return { ...availability, busy: [...unique.values()].sort((a, b) => Date.parse(a.starts_at ?? '') - Date.parse(b.starts_at ?? '')) }
+}
 export function createBookingPayload(draft: NewBookingDraft) {
   return { space_id: draft.spaceId, first_name: draft.firstName.trim(), last_name: draft.lastName.trim(), title: draft.eventTitle.trim(), purpose: draft.purpose.trim(),
     people_count: draft.peopleCount, starts_at: moscowDateTime(draft.dateISO, draft.fromTime), ends_at: moscowDateTime(draft.dateISO, draft.toTime) }

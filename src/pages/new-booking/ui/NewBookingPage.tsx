@@ -4,9 +4,10 @@ import { bookingApi } from '@/entities/booking'
 import type { NewBookingDraft } from '@/entities/booking-draft'
 import type { MyBooking } from '@/entities/my-booking'
 import { spaceApi } from '@/entities/space'
+import { scheduleApi } from '@/entities/schedule'
 import { useSession } from '@/entities/user/model/session-context'
 import { NewBookingForm } from '@/features/create-booking'
-import { availabilityForReschedule, createBookingPayload, suggestBookingTimes, validateBookingDraft } from '@/features/create-booking/model/booking'
+import { availabilityForReschedule, createBookingPayload, includeScheduleBusy, suggestBookingTimes, validateBookingDraft } from '@/features/create-booking/model/booking'
 import { ApiRequestError, errorMessage } from '@/shared/api/errors'
 import { routes } from '@/shared/config'
 import { formatDateLabel, formatTime, toISODate } from '@/shared/lib/format'
@@ -35,8 +36,14 @@ export function NewBookingPage({ onClose }: NewBookingPageProps) {
   const selected = spaces.data?.find(space => space.space_id === storedDraft.spaceId) ?? spaces.data?.[0]
   const spaceId = selected?.space_id ?? 0
   const capacity = selected?.capacity ?? 0
-  const availability = useAsyncData(async () => spaceId ? spaceApi.getSpaceAvailability(spaceId, storedDraft.dateISO) : undefined, spaceId + ':' + storedDraft.dateISO)
-  const data = availability.data && reschedule ? availabilityForReschedule(availability.data, source!) : availability.data
+  const loadAvailability = async () => {
+    if (!spaceId) return undefined
+    const [available, schedule] = await Promise.all([spaceApi.getSpaceAvailability(spaceId, storedDraft.dateISO), scheduleApi.getSchedule(storedDraft.dateISO, storedDraft.dateISO)])
+    const adjusted = reschedule ? availabilityForReschedule(available, source!) : available
+    return includeScheduleBusy(adjusted, schedule.items ?? [], reschedule ? source!.bookingId : undefined)
+  }
+  const availability = useAsyncData(loadAvailability, spaceId + ':' + storedDraft.dateISO)
+  const data = availability.data
   const suggestion = data ? suggestBookingTimes(data, openedAt) : undefined
   const draft: NewBookingDraft = { ...storedDraft, spaceId, peopleLimit: capacity,
     peopleCount: reschedule ? storedDraft.peopleCount : Math.min(storedDraft.peopleCount, capacity),
@@ -54,6 +61,10 @@ export function NewBookingPage({ onClose }: NewBookingPageProps) {
     if (Object.keys(errors).length) return
     setBusy(true)
     try {
+      const currentAvailability = await loadAvailability()
+      if (!currentAvailability) return
+      const currentErrors = validateBookingDraft(draft, currentAvailability)
+      if (Object.keys(currentErrors).length) { setFields(currentErrors); availability.reload(); return }
       const payload = createBookingPayload(draft)
       if (reschedule) await bookingApi.rescheduleBooking(source!.bookingId!, { space_id: payload.space_id, starts_at: payload.starts_at, ends_at: payload.ends_at })
       else await bookingApi.createBooking(payload)
@@ -66,7 +77,7 @@ export function NewBookingPage({ onClose }: NewBookingPageProps) {
   if (spaces.loading) return <main className="page-shell"><LoadingState label="Загружаем помещения…" /></main>
   if (spaces.error) return <main className="page-shell"><ErrorState message={spaces.error} onRetry={spaces.reload} /><button className="secondary-action mt-4" onClick={close}>Назад к заявкам</button></main>
   if (!spaces.data?.length) return <main className="page-shell"><EmptyState title="Нет доступных помещений" text="Попробуйте позже." /><button onClick={close} className="secondary-action mt-4">Назад к заявкам</button></main>
-  const summary = availability.loading ? 'Проверяем доступность…' : data ? 'Рабочие часы: ' + data.open_time?.slice(0, 5) + '–' + data.close_time?.slice(0, 5) + '. Шаг ' + data.slot_step_min + ' мин. Время московское.' + (data.busy?.length ? ' Занято: ' + data.busy.map(slot => formatTime(slot.starts_at) + '–' + formatTime(slot.ends_at)).join(', ') : ' Занятых интервалов нет.') : ''
+  const summary = availability.loading ? 'Проверяем доступность…' : data ? 'Рабочие часы: ' + data.open_time?.slice(0, 5) + '–' + data.close_time?.slice(0, 5) + '. Шаг ' + data.slot_step_min + ' мин. Время московское. Заявки на рассмотрении тоже занимают время.' + (data.busy?.length ? ' Занято: ' + data.busy.map(slot => formatTime(slot.starts_at) + '–' + formatTime(slot.ends_at)).join(', ') : ' Занятых интервалов нет.') : ''
   return <>
     <NewBookingForm spaceOptions={spaces.data.map((space, index) => ({ id: space.space_id!, name: space.name ?? '', capacityLabel: 'до ' + space.capacity + ' чел.', color: index === 0 ? 'violet' : 'lime' }))}
       draft={draft} onChange={next => { setDraft(next); setFields({}); setError('') }} onOpenDatePicker={() => setDatePickerOpen(true)}

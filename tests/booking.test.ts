@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { availabilityForReschedule, createBookingPayload, validateBookingDraft } from '@/features/create-booking/model/booking'
+import { availabilityForReschedule, createBookingPayload, includeScheduleBusy, validateBookingDraft } from '@/features/create-booking/model/booking'
 import type { NewBookingDraft } from '@/entities/booking-draft'
 
 const draft: NewBookingDraft = { spaceId: 2, firstName: 'Пользователь', lastName: 'VK', dateISO: '2026-12-01',
@@ -44,4 +44,18 @@ it('allows a partial overlap with the source booking but preserves other conflic
   ] }, original)
   expect(validateBookingDraft({ ...draft, fromTime: '15:30', toTime: '17:30' }, available, now)).toEqual({})
   expect(validateBookingDraft({ ...draft, fromTime: '17:30', toTime: '18:30' }, available, now).starts_at).toBeTruthy()
+})
+
+it('preserves another pending booking on the original slot while rescheduling and ignores other rooms', () => {
+  const original = { spaceId: 2, startsAt: '2026-12-01T15:00:00+03:00', endsAt: '2026-12-01T17:00:00+03:00' }
+  const available = availabilityForReschedule({ ...availability, busy: [{ starts_at: original.startsAt, ends_at: original.endsAt }] }, original)
+  const items = [
+    { booking_id: 1, space_id: 2, status: 'approved' as const, starts_at: original.startsAt, ends_at: original.endsAt },
+    { booking_id: 2, space_id: 2, status: 'pending' as const, starts_at: original.startsAt, ends_at: original.endsAt },
+    { booking_id: 3, space_id: 1, status: 'pending' as const, starts_at: '2026-12-01T17:00:00+03:00', ends_at: '2026-12-01T18:00:00+03:00' },
+  ]
+  const merged = includeScheduleBusy(available, items, 1)
+  expect(validateBookingDraft(draft, merged, now).starts_at).toBe('Выбранное время уже занято')
+  expect(validateBookingDraft({ ...draft, fromTime: '17:00', toTime: '17:30' }, merged, now)).toEqual({})
+  expect(includeScheduleBusy(available, [items[0]], 1).busy).toEqual([])
 })

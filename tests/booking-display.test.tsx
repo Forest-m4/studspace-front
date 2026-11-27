@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { bookingApi } from '@/entities/booking'
 import { spaceApi } from '@/entities/space'
@@ -25,4 +25,23 @@ it.each(['day', 'week'] as const)('distinguishes pending and approved slots in %
   render(<ScheduleGrid {...view} selectedDate="2099-12-01" viewMode={viewMode} onSelectSlot={vi.fn()} onSelectBooking={vi.fn()} />)
   expect(screen.queryByRole('group', { name: /Ожидает решения.*На рассмотрении/ })).not.toBeNull()
   expect(screen.queryByRole('group', { name: /Одобренная встреча.*Подтверждена/ })).not.toBeNull()
+  expect(screen.getByRole('button', { name: 'Забронировать Зал А, 2099-12-01, 15:00–15:30' }).hasAttribute('disabled')).toBe(true)
+  expect(screen.getByRole('button', { name: 'Забронировать Зал А, 2099-12-01, 16:00–16:30' }).hasAttribute('disabled')).toBe(false)
+})
+
+it.each(['day', 'week'] as const)('keeps overlapping applications independently selectable in %s view', viewMode => {
+  const view = mapApiScheduleToView({ spaces: [{ space_id: 1, name: 'Зал А', capacity: 25 }], items: [
+    { booking_id: 1, space_id: 1, title: 'Первая заявка', status: 'pending', starts_at: '2099-12-01T15:00:00+03:00', ends_at: '2099-12-01T17:00:00+03:00' },
+    { booking_id: 2, space_id: 1, title: 'Вторая заявка', status: 'pending', starts_at: '2099-12-01T15:00:00+03:00', ends_at: '2099-12-01T17:00:00+03:00' },
+  ] })
+  const select = vi.fn()
+  render(<ScheduleGrid {...view} selectedDate="2099-12-01" viewMode={viewMode} onSelectSlot={vi.fn()} onSelectBooking={select} />)
+  const first = screen.getByRole('button', { name: /Открыть заявку «Первая заявка»/ })
+  const second = screen.getByRole('button', { name: /Открыть заявку «Вторая заявка»/ })
+  const firstBounds = first.parentElement!.style
+  const secondBounds = second.parentElement!.style
+  expect(parseFloat(firstBounds.left) + parseFloat(firstBounds.width)).toBeLessThanOrEqual(parseFloat(secondBounds.left))
+  fireEvent.click(first)
+  fireEvent.click(second)
+  expect(select.mock.calls.map(([item]) => item.id)).toEqual(view.items.map(item => item.id))
 })
