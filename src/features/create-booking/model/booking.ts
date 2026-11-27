@@ -3,13 +3,23 @@ import type { components } from '@/shared/api/schema'
 import { clockMinutes, moscowDateTime, formatTime, toISODate } from '@/shared/lib/format'
 
 type Availability = components['schemas']['api.SpaceAvailability']
+export function includeScheduleBusy(availability: Availability, items: components['schemas']['api.ScheduleItem'][], excludedBookingId?: number): Availability {
+  const busy = [...(availability.busy ?? []), ...items.filter(item =>
+    item.space_id === availability.space_id && (excludedBookingId === undefined || item.booking_id !== excludedBookingId) &&
+    (item.status === 'pending' || item.status === 'approved') && item.starts_at && toISODate(new Date(item.starts_at)) === availability.date)
+    .map(item => ({ starts_at: item.starts_at, ends_at: item.ends_at }))]
+  const unique = new Map(busy.map(slot => [Date.parse(slot.starts_at ?? '') + ':' + Date.parse(slot.ends_at ?? ''), slot]))
+  return { ...availability, busy: [...unique.values()].sort((a, b) => Date.parse(a.starts_at ?? '') - Date.parse(b.starts_at ?? '')) }
+}
 export function createBookingPayload(draft: NewBookingDraft) {
-  return { space_id: draft.spaceId, title: draft.eventTitle.trim(), purpose: draft.purpose.trim(),
+  return { space_id: draft.spaceId, first_name: draft.firstName.trim(), last_name: draft.lastName.trim(), title: draft.eventTitle.trim(), purpose: draft.purpose.trim(),
     people_count: draft.peopleCount, starts_at: moscowDateTime(draft.dateISO, draft.fromTime), ends_at: moscowDateTime(draft.dateISO, draft.toTime) }
 }
 export function validateBookingDraft(draft: NewBookingDraft, availability?: Availability, now = new Date()) {
   const errors: Record<string, string> = {}
   const payload = createBookingPayload(draft)
+  if ([...payload.first_name].length < 1 || [...payload.first_name].length > 100) errors.first_name = 'Имя: от 1 до 100 символов'
+  if ([...payload.last_name].length < 1 || [...payload.last_name].length > 100) errors.last_name = 'Фамилия: от 1 до 100 символов'
   if (!draft.spaceId) errors.space_id = 'Выберите помещение'
   if ([...payload.title].length < 1 || [...payload.title].length > 150) errors.title = 'Название: от 1 до 150 символов'
   if ([...payload.purpose].length < 1 || [...payload.purpose].length > 150) errors.purpose = 'Цель: от 1 до 150 символов'

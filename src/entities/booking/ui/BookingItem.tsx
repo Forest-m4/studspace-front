@@ -1,4 +1,5 @@
 import { formatTime } from '@/shared/lib/format'
+import { bookingStatusLabel } from '@/shared/lib/booking-status'
 import type { Booking } from '../model/types'
 
 export interface BookingItemProps {
@@ -15,33 +16,19 @@ export function BookingItem({ item, booking, isLast = false, variant = 'list' }:
     return null
   }
 
-  const isEvent = data.type === 'event'
-  const isCompleted = data.status === 'completed'
-
-  const bgClass = isEvent
-    ? 'bg-purple-100 border-purple-300'
-    : isCompleted
-      ? 'bg-indigo-50 border-indigo-200 opacity-70'
-      : 'bg-[#f4f7d4] border-[#e2e8a0]'
+  const statusLabel = data.status ? bookingStatusLabel(data.status) : 'Статус не указан'
+  const statusClass = data.status === 'pending' ? 'booking-slot-pending' : data.status === 'approved' ? 'booking-slot-approved' : 'booking-slot-neutral'
 
   const time = `${formatTime(data.startTime)} - ${formatTime(data.endTime)}`
   const person = data.type === 'booking' ? data.ownerName : data.organizer
 
   if (variant === 'grid') {
     return (
-      <div className={`absolute h-full w-full rounded-md border-l-4 p-2 text-xs flex flex-col overflow-hidden shadow-sm ${bgClass}`}>
+      <div role="group" aria-label={`${data.title || 'Без названия'}. ${statusLabel}. ${time}${person ? '. ' + person : ''}`} data-booking-status={data.status}
+        className={`absolute h-full w-full rounded-md border-l-4 p-2 text-xs flex flex-col overflow-hidden shadow-sm ${statusClass}`}>
         <div className="font-semibold text-gray-800 leading-tight mb-1">{data.title || 'Без названия'}</div>
         <div className="text-gray-600 mb-1">{time}{person ? ` • ${person}` : ''}</div>
-        {isCompleted && (
-          <div className="mt-auto inline-block bg-white/60 text-gray-600 px-1.5 py-0.5 rounded text-[10px] w-max">
-            Завершено
-          </div>
-        )}
-        {isEvent && (
-          <div className="mt-auto inline-block bg-white/60 text-gray-600 px-1.5 py-0.5 rounded text-[10px] w-max">
-            Мероприятие
-          </div>
-        )}
+        <div className="mt-auto text-[10px] leading-tight text-gray-700">{statusLabel}</div>
       </div>
     )
   }

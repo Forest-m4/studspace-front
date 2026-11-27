@@ -53,13 +53,16 @@ const server = http.createServer(async (req, res) => {
     return send(200, { items: all.slice(offset, offset + limit).map(view), next_cursor: offset + limit < all.length ? String(offset + limit) : null, counters: { new: bookings.filter(b => b.status === 'pending').length } })
   }
   if (path === '/bookings' && req.method === 'POST') {
+    for (const field of ['first_name', 'last_name']) {
+      if (body[field] !== undefined && (typeof body[field] !== 'string' || !body[field].trim() || [...body[field].trim()].length > 100)) return fail(422, 'Проверьте имя и фамилию', 'VALIDATION_ERROR', { [field]: 'От 1 до 100 символов' })
+    }
     if (!body.title?.trim()) return fail(422, 'Укажите название', 'VALIDATION_ERROR', { title: 'Обязательное поле' })
     if (!/[+Z]/.test(body.starts_at.slice(19))) return fail(400, 'Нужен часовой пояс', 'BAD_REQUEST')
     const space = spaces.find(s => s.space_id === body.space_id)
     if (!space || body.people_count > space.capacity || Date.parse(body.ends_at) <= Date.parse(body.starts_at) || Date.parse(body.starts_at) <= Date.now()) return fail(422, 'Проверьте поля заявки')
     const candidate = { ...body, space }
     if (bookings.some(b => b.status === 'approved' && overlaps(b, candidate))) return fail(409, 'Выбранное время уже занято', 'SLOT_CONFLICT')
-    const item = { ...body, booking_id: Math.max(0, ...bookings.map(b => b.booking_id)) + 1, status: 'pending', space, first_name: user.first_name, last_name: user.last_name, created_at: new Date().toISOString(), user: { vk_user_id: user.vk_user_id } }
+    const item = { ...body, booking_id: Math.max(0, ...bookings.map(b => b.booking_id)) + 1, status: 'pending', space, first_name: body.first_name?.trim() ?? user.first_name, last_name: body.last_name?.trim() ?? user.last_name, created_at: new Date().toISOString(), user: { vk_user_id: user.vk_user_id } }
     bookings.unshift(item); return send(201, view(item))
   }
   const action = path.match(/^\/(admin\/)?bookings\/(\d+)\/(withdraw|cancel|reschedule|approve|reject|return-to-review)$/)

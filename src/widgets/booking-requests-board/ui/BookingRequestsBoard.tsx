@@ -11,7 +11,7 @@ import { usePagedData } from '@/shared/lib/usePagedData'
 import { useAsyncData } from '@/shared/lib/useAsyncData'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
 import { Modal } from '@/shared/ui/modal/Modal'
-function Field({ label, value }: { label: string; value: string | number }) { return <div><p className="mb-1 text-[13px] text-brand-muted">{label}</p><p className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px]">{value}</p></div> }
+function Field({ label, value }: { label: string; value: string | number }) { return <div><p className="mb-1 text-[13px] text-brand-muted">{label}</p><p className="break-words rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px]">{value}</p></div> }
 type Decision = 'approve' | 'reject' | 'cancel' | 'return'
 export function BookingRequestsBoard() {
   const [tab, setTab] = useState<RequestTab>('new')
@@ -46,6 +46,7 @@ export function BookingRequestsBoard() {
         <div className="mt-4 flex flex-col gap-3"><Field label="Помещение" value={request.spaceName + (request.capacityLabel ? ' · ' + request.capacityLabel : '')} />
           <div className="grid grid-cols-2 gap-3"><Field label="Фамилия" value={request.lastName} /><Field label="Имя" value={request.firstName} /></div>
           <Field label="Дата" value={request.dateLabel} /><div className="grid grid-cols-2 gap-3"><Field label="С" value={request.fromTime} /><Field label="До" value={request.toTime} /></div>
+          <Field label="Название мероприятия" value={request.title?.trim() || 'Без названия'} />
           <Field label="Для чего" value={request.purpose} /><Field label="Сколько человек" value={request.peopleCount + (request.peopleLimit ? ' из ' + request.peopleLimit : '')} />
           {request.warningText && <p className="flex gap-2 whitespace-pre-line rounded-xl bg-[#fff7e8] p-3 text-[13px] text-[#99621b]"><AlertTriangle size={17} className="shrink-0" />{request.warningText}</p>}
           {request.decisionReason && <div className="rounded-xl bg-[#fff0f2] p-3 text-[13px] text-[#9a3548]"><p className="mb-1 font-semibold">{request.decisionReasonTitle || 'Причина отказа'}</p><p>{request.decisionReason}</p></div>}
@@ -59,6 +60,7 @@ export function BookingRequestsBoard() {
     {list.cursor && <button className="secondary-action" disabled={list.more} onClick={() => { void list.loadMore() }}>{list.more ? 'Загружаем…' : 'Показать ещё'}</button>}
     {target?.action === 'reject' ? <RejectRequestModal request={target.request} busy={busy} error={error} onClose={() => setTarget(undefined)} onSubmit={(reason, title) => { void act(reason, title) }} /> :
       target && <Modal title={target.action === 'approve' ? 'Одобрить заявку?' : target.action === 'cancel' ? 'Отменить бронь?' : 'Вернуть на рассмотрение?'} busy={busy} onClose={() => setTarget(undefined)}>
+        <p className="mb-2 break-words text-[15px] font-semibold">{target.request.title?.trim() || 'Без названия'}</p>
         <p className="text-[14px] text-brand-muted">{target.request.lastName} {target.request.firstName} · {target.request.dateLabel}, {target.request.fromTime}–{target.request.toTime}</p>
         {target.request.warningText && <p className="mt-3 rounded-xl bg-[#fff7e8] p-3 text-[13px]">{target.request.warningText}</p>}
         {error && <div className="mt-3"><ErrorState message={error} /></div>}

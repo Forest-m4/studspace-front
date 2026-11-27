@@ -2,14 +2,17 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { eventApi } from '@/entities/event'
 import type { EventListItem } from '@/entities/event'
+import type { components } from '@/shared/api/schema'
 import { formatDateLabel, formatTime, shiftDate, toISODate, weekRange } from '@/shared/lib/format'
 import { useAsyncData } from '@/shared/lib/useAsyncData'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
 import { EventsList } from '@/widgets/events-list'
 import { EventsOverview } from '@/widgets/events-overview'
+import { BookingDetailsModal } from '@/widgets/booking-details'
 export function EventsPage() {
   const [date, setDate] = useState(() => toISODate(new Date()))
   const [filter, setFilter] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<components['schemas']['api.Booking']>()
   const range = weekRange(date)
   const state = useAsyncData(() => eventApi.getEvents(range.from, range.to), range.from + ':' + range.to)
   const source = [...(state.data?.items ?? [])].sort((a, b) => Date.parse(a.starts_at!) - Date.parse(b.starts_at!))
@@ -23,8 +26,9 @@ export function EventsPage() {
     <EventsOverview eventsCount={state.data?.week_total ?? 0} weekDays={Array.from({ length: 7 }, (_, i) => {
       const iso = shiftDate(range.from, i)
       return { short: new Intl.DateTimeFormat('ru-RU', { weekday: 'short', timeZone: 'Europe/Moscow' }).format(new Date(iso + 'T12:00:00+03:00')), day: Number(iso.slice(8)), active: iso === date }
-    })} onDaySelect={index => { setDate(shiftDate(range.from, index)); setFilter(true) }} featuredEvent={featured ? { badge: 'Сегодня', title: featured.title ?? '', startTime: formatTime(featured.starts_at), endTime: formatTime(featured.ends_at) } : undefined} />
+    })} onDaySelect={index => { setDate(shiftDate(range.from, index)); setFilter(true) }} featuredEvent={featured ? { badge: 'Сегодня', title: featured.title ?? '', startTime: formatTime(featured.starts_at), endTime: formatTime(featured.ends_at) } : undefined} onFeaturedSelect={() => setSelectedBooking(featured ?? undefined)} />
     {filter && <button className="self-start text-[13px] text-brand-primary" onClick={() => setFilter(false)}>Показать всю неделю</button>}
-    {state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : list.length ? <EventsList events={list} /> : <EmptyState title="Событий пока нет" text={filter ? 'В выбранный день нет мероприятий.' : 'На этой неделе нет одобренных броней.'} />}
+    {state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : list.length ? <EventsList events={list} onSelect={event => setSelectedBooking(source.find(item => String(item.booking_id) === event.id))} /> : <EmptyState title="Событий пока нет" text={filter ? 'В выбранный день нет мероприятий.' : 'На этой неделе нет одобренных броней.'} />}
+    {selectedBooking && <BookingDetailsModal key={selectedBooking.booking_id} booking={selectedBooking} onClose={() => setSelectedBooking(undefined)} />}
   </main>
 }

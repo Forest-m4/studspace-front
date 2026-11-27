@@ -7,7 +7,8 @@ export interface BookingSpaceOption {
 
 export interface NewBookingDraft {
   spaceId: number
-  fullName: string
+  firstName: string
+  lastName: string
   dateISO: string
   dateLabel: string
   fromTime: string
