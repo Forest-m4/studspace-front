@@ -1,246 +1,63 @@
-import { useEffect, useMemo, useState } from 'react'
-import { CalendarPlus2, Clock3, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { CalendarPlus2, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { bookingApi } from '@/entities/booking'
-import { MOCK_MY_BOOKINGS, MY_BOOKING_TABS } from '@/entities/my-booking'
-import type { MyBooking, MyBookingStatus, MyBookingTab } from '@/entities/my-booking'
+import type { MyBooking, MyBookingTab } from '@/entities/my-booking'
 import { mapApiBookingsToMyBookings } from '@/shared/api/adapters'
-import { cn } from '@/shared/lib'
-
-export interface MyBookingsBoardProps {
-  onCreateBooking: () => void
-}
-
-function statusBadge(status: MyBookingStatus) {
-  if (status === 'pending') return { label: 'На рассмотрении', className: 'bg-[#eeedfc] text-brand-primary' }
-  if (status === 'approved') return { label: 'Подтверждена', className: 'bg-[#daf6e8] text-[#2e9e6b]' }
-  if (status === 'rejected') return { label: 'Отклонена', className: 'bg-[#fde8eb] text-[#d85068]' }
-  if (status === 'completed') return { label: 'Завершена', className: 'bg-[#f0f0f5] text-[#8a88a5]' }
-  return { label: 'Отменена вами', className: 'bg-[#f0f0f5] text-[#8a88a5]' }
-}
-
-function ActiveBookingCard({
-  booking,
-  onWithdraw,
-  onCancel,
-  onReschedule,
-}: {
-  booking: MyBooking
-  onWithdraw: (bookingId?: number) => void
-  onCancel: (bookingId?: number) => void
-  onReschedule: (booking: MyBooking) => void
-}) {
-  const badge = statusBadge(booking.status)
-  const [timeLine, dateLine] = booking.dateTimeLabel.split('\n')
-
-  return (
-    <article className="rounded-3xl bg-white border border-black/[0.03] overflow-hidden">
-      <div className="px-4 py-3 border-l-3 border-[#b8d415]">
-        <div className="flex items-center justify-between">
-          <span className={cn('text-[12px] px-2 py-0.5 rounded-full font-medium', badge.className)}>
-            {badge.label}
-          </span>
-          <span className="text-[12px] text-brand-muted">{booking.createdAtLabel}</span>
-        </div>
-        <p className="mt-2 text-[38px] leading-none font-bold text-brand-dark">{timeLine}</p>
-        <p className="mt-1 text-[16px] text-brand-muted">{dateLine}</p>
-        <p className="mt-2 text-[16px] text-brand-dark">• {booking.spaceAndPeople}</p>
-        <p className="mt-1 text-[14px] text-brand-muted">{booking.purpose}</p>
-        {booking.statusNote && (
-          <p className="mt-2 text-[13px] text-brand-muted inline-flex items-center gap-1.5">
-            <Clock3 size={13} />
-            {booking.statusNote}
-          </p>
-        )}
-      </div>
-      <div className="h-px bg-[#efeff4]" />
-      <div className="px-4 py-2">
-        {booking.status === 'pending' ? (
-          <button
-            type="button"
-            onClick={() => onWithdraw(booking.bookingId)}
-            className="text-[16px] text-brand-muted hover:text-brand-dark transition-colors"
-          >
-            Отозвать заявку
-          </button>
-        ) : (
-          <div className="flex items-center gap-4 text-[16px]">
-            <button
-              type="button"
-              onClick={() => onReschedule(booking)}
-              className="text-brand-primary hover:text-[#5c5adf] transition-colors"
-            >
-              Перенести
-            </button>
-            <button
-              type="button"
-              onClick={() => onCancel(booking.bookingId)}
-              className="text-[#dd596c] hover:text-[#c54f5f] transition-colors"
-            >
-              Отменить
-            </button>
-          </div>
-        )}
-      </div>
-    </article>
-  )
-}
-
-function HistoryBookingCard({ booking }: { booking: MyBooking }) {
-  const badge = statusBadge(booking.status)
-
-  return (
-    <article className="rounded-3xl bg-white border border-black/[0.03] px-3 py-3">
-      <div className="border-l-3 border-[#7f7ef0] pl-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[16px] font-semibold text-brand-dark">{booking.dateTimeLabel}</p>
-          <span className={cn('text-[12px] px-2 py-0.5 rounded-full', badge.className)}>{badge.label}</span>
-        </div>
-        <p className="mt-1 text-[14px] text-brand-muted">• {booking.spaceAndPeople}</p>
-        <p className="mt-1 text-[14px] text-brand-muted">{booking.purpose}</p>
-        {booking.rejectReason && (
-          <p className="mt-2 rounded-xl bg-[#ffeef1] text-[#9f5564] px-3 py-2 text-[13px] leading-4">
-            {booking.rejectReason}
-          </p>
-        )}
-        {booking.status === 'rejected' && (
-          <button type="button" className="mt-2 text-[16px] text-brand-primary hover:text-[#5c5adf] transition-colors">
-            Забронировать снова
-          </button>
-        )}
-      </div>
-    </article>
-  )
-}
-
+import { errorMessage } from '@/shared/api/errors'
+import { routes } from '@/shared/config'
+import { formatDateLabel, formatTime } from '@/shared/lib/format'
+import { bookingStatusClass, bookingStatusLabel } from '@/shared/lib/booking-status'
+import { usePagedData } from '@/shared/lib/usePagedData'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
+import { Modal } from '@/shared/ui/modal/Modal'
+export interface MyBookingsBoardProps { onCreateBooking: () => void }
 export function MyBookingsBoard({ onCreateBooking }: MyBookingsBoardProps) {
-  const [activeTab, setActiveTab] = useState<MyBookingTab>('active')
-  const [items, setItems] = useState<MyBooking[]>(MOCK_MY_BOOKINGS)
-
-  const reloadTab = (tab: MyBookingTab) => {
-    bookingApi
-      .getMyBookings(tab)
-      .then((data) => {
-        if (!data) return
-        const nextItems = mapApiBookingsToMyBookings(data.items, tab)
-        setItems((prev) => {
-          const other = prev.filter((item) => item.tab !== tab)
-          return [...other, ...nextItems]
-        })
-      })
-      .catch(() => undefined)
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<MyBookingTab>('active')
+  const list = usePagedData(cursor => bookingApi.getMyBookings(tab, cursor), tab)
+  const items = mapApiBookingsToMyBookings(list.items, tab)
+  const [target, setTarget] = useState<{ booking: MyBooking; action: 'cancel' | 'withdraw' }>()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const confirm = async () => {
+    if (!target?.booking.bookingId || busy) return
+    setBusy(true); setError('')
+    try {
+      if (target.action === 'withdraw') await bookingApi.withdrawBooking(target.booking.bookingId)
+      else await bookingApi.cancelBooking(target.booking.bookingId)
+      setTarget(undefined); setNotice(target.action === 'withdraw' ? 'Заявка отозвана.' : 'Бронь отменена.'); list.reload()
+    } catch (reason) { setError(errorMessage(reason)) }
+    finally { setBusy(false) }
   }
-
-  useEffect(() => {
-    bookingApi
-      .getMyBookings(activeTab)
-      .then((data) => {
-        if (!data) return
-        const nextItems = mapApiBookingsToMyBookings(data.items, activeTab)
-        setItems((prev) => {
-          const other = prev.filter((item) => item.tab !== activeTab)
-          return [...other, ...nextItems]
-        })
-      })
-      .catch(() => undefined)
-  }, [activeTab])
-
-  const handleWithdraw = async (bookingId?: number) => {
-    if (!bookingId) return
-    await bookingApi.withdrawBooking(bookingId)
-    reloadTab('active')
-  }
-
-  const handleCancel = async (bookingId?: number) => {
-    if (!bookingId) return
-    await bookingApi.cancelBooking(bookingId)
-    reloadTab('active')
-  }
-
-  const handleReschedule = async (booking: MyBooking) => {
-    if (!booking.bookingId || !booking.startsAt || !booking.endsAt || !booking.spaceId) return
-
-    const start = new Date(booking.startsAt)
-    const end = new Date(booking.endsAt)
-    start.setDate(start.getDate() + 1)
-    end.setDate(end.getDate() + 1)
-
-    await bookingApi.rescheduleBooking(booking.bookingId, {
-      space_id: booking.spaceId,
-      starts_at: start.toISOString(),
-      ends_at: end.toISOString(),
-    })
-    reloadTab('active')
-  }
-
-  const tabItems = useMemo(
-    () => items.filter((item) => item.tab === activeTab),
-    [items, activeTab],
-  )
-
-  return (
-    <section className="flex flex-col gap-3 relative">
-      <div className="rounded-2xl bg-white p-1 grid grid-cols-2 gap-1">
-        {MY_BOOKING_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'h-8 rounded-xl text-[14px] transition-colors',
-              activeTab === tab.key ? 'bg-brand-primary text-white' : 'text-brand-dark hover:bg-[#f2f2f8]',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'history' && <p className="text-[14px] text-brand-muted px-1">Октябрь 2026</p>}
-
-      {tabItems.length === 0 && activeTab === 'active' ? (
-        <div className="rounded-3xl bg-white p-5 mt-16 flex flex-col items-center text-center">
-          <div className="h-20 w-20 rounded-full bg-[#eeedfc] text-brand-primary inline-flex items-center justify-center">
-            <CalendarPlus2 size={32} />
-          </div>
-          <p className="mt-4 text-[30px] leading-none font-bold text-brand-dark">Заявок пока нет</p>
-          <p className="mt-2 text-[18px] leading-6 text-brand-muted">
-            Забронируйте пространство - заявка появится здесь
-          </p>
-          <button
-            type="button"
-            onClick={onCreateBooking}
-            className="mt-4 h-12 px-6 rounded-2xl bg-brand-accent text-brand-dark text-[16px] font-semibold"
-          >
-            + Новая заявка
-          </button>
+  return <section className="flex flex-col gap-3">
+    <div className="tab-list w-full">{(['active','history'] as const).map(value => <button key={value} aria-pressed={tab === value} className={tab === value ? 'active' : ''} onClick={() => { setTab(value); setError(''); setNotice('') }}>{value === 'active' ? 'Активные' : 'История'}</button>)}</div>
+    {notice && <p role="status" className="success-message">{notice}</p>}
+    {error && !target && <ErrorState message={error} />}
+    {list.loading ? <LoadingState /> : list.error ? <ErrorState message={list.error} onRetry={list.reload} /> : !items.length ? tab === 'active' ?
+      <div className="mt-10 flex flex-col items-center rounded-3xl bg-white p-6 text-center"><span className="flex size-20 items-center justify-center rounded-full bg-[#eeedfc] text-brand-primary"><CalendarPlus2 size={32} /></span><h2 className="mt-4 text-[20px] font-bold">Заявок пока нет</h2><p className="mt-2 text-[15px] text-brand-muted">Забронируйте пространство — заявка появится здесь</p><button className="primary-action mt-5 px-6" onClick={onCreateBooking}>+ Новая заявка</button></div>
+      : <EmptyState title="История пока пуста" text="Завершённые и отклонённые заявки появятся здесь." />
+      : items.map(booking => <article key={booking.id} className="overflow-hidden rounded-3xl bg-white">
+        <div className="border-l-3 border-brand-primary p-4"><div className="flex items-center justify-between gap-2"><span className={'rounded-full px-2 py-1 text-[12px] ' + bookingStatusClass(booking.status)}>{bookingStatusLabel(booking.status, booking.cancelledBy)}</span><span className="text-[12px] text-brand-muted">{booking.createdAtLabel}</span></div>
+          {tab === 'active' ? <div className="mt-3"><p className="text-[22px] font-bold">{formatTime(booking.startsAt)}–{formatTime(booking.endsAt)}</p><p className="mt-1 text-[14px] text-brand-muted">{formatDateLabel(booking.startsAt)}</p></div> : <p className="mt-3 text-[16px] font-semibold">{booking.dateTimeLabel}</p>}
+          <p className="mt-2 text-[15px]">{booking.spaceAndPeople}</p>{booking.title && <p className="mt-1 text-[15px] font-semibold">{booking.title}</p>}<p className="mt-1 text-[14px] text-brand-muted">{booking.purpose}</p>
+          {booking.rejectReason && <p className="mt-3 rounded-xl bg-[#fff0f2] p-3 text-[13px] text-[#9a3548]">{booking.rejectReason}</p>}
         </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {tabItems.map((item) =>
-            activeTab === 'active' ? (
-              <ActiveBookingCard
-                key={item.id}
-                booking={item}
-                onWithdraw={handleWithdraw}
-                onCancel={handleCancel}
-                onReschedule={handleReschedule}
-              />
-            ) : (
-              <HistoryBookingCard key={item.id} booking={item} />
-            ),
-          )}
-        </div>
-      )}
-
-      {activeTab === 'active' && tabItems.length > 0 && (
-        <button
-          type="button"
-          onClick={onCreateBooking}
-          className="fixed right-5 bottom-24 h-12 w-12 rounded-full bg-brand-accent text-brand-dark inline-flex items-center justify-center shadow-lg"
-        >
-          <Plus size={20} />
-        </button>
-      )}
-    </section>
-  )
+        {(booking.actions?.length ?? 0) > 0 && <div className="flex flex-wrap gap-4 border-t border-brand-border px-4 py-3 text-[15px]">
+          {booking.actions?.includes('withdraw') && <button className="text-brand-muted" disabled={busy} onClick={() => { setError(''); setTarget({ booking, action: 'withdraw' }) }}>Отозвать заявку</button>}
+          {booking.actions?.includes('reschedule') && <button className="text-brand-primary" disabled={busy} onClick={() => navigate(routes.newBooking, { state: { booking, mode: 'reschedule' } })}>Перенести</button>}
+          {booking.actions?.includes('cancel') && <button className="text-[#bd3f56]" disabled={busy} onClick={() => { setError(''); setTarget({ booking, action: 'cancel' }) }}>Отменить</button>}
+          {booking.actions?.includes('rebook') && <button className="text-brand-primary" onClick={() => navigate(routes.newBooking, { state: { booking, mode: 'rebook' } })}>Забронировать снова</button>}
+        </div>}
+      </article>)}
+    {list.moreError && <ErrorState message={list.moreError} onRetry={() => { void list.loadMore() }} />}
+    {list.cursor && <button className="secondary-action" disabled={list.more} onClick={() => { void list.loadMore() }}>{list.more ? 'Загружаем…' : 'Показать ещё'}</button>}
+    {tab === 'active' && items.length > 0 && <button aria-label="Новая заявка" onClick={onCreateBooking} className="floating-action bg-brand-accent! text-brand-dark!"><Plus size={22} /></button>}
+    {target && <Modal title={target.action === 'withdraw' ? 'Отозвать заявку?' : 'Отменить бронь?'} onClose={() => setTarget(undefined)} busy={busy}>
+      <p className="mb-4 text-[14px] text-brand-muted">{target.booking.dateTimeLabel} · {target.booking.spaceAndPeople}</p>
+      {error && <ErrorState message={error} />}
+      <div className="mt-4 grid grid-cols-2 gap-3"><button className="secondary-action" disabled={busy} onClick={() => setTarget(undefined)}>Оставить</button><button className="danger-action" disabled={busy} onClick={() => { void confirm() }}>{busy ? 'Отправляем…' : target.action === 'withdraw' ? 'Отозвать' : 'Отменить бронь'}</button></div>
+    </Modal>}
+  </section>
 }

@@ -1,266 +1,68 @@
-import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CalendarDays, Check, CircleCheck, Clock3 } from 'lucide-react'
+import { useState } from 'react'
+import { AlertTriangle, Check } from 'lucide-react'
 import { bookingApi } from '@/entities/booking'
-import { REQUEST_TABS } from '@/entities/booking-request'
 import type { BookingRequest, RequestTab } from '@/entities/booking-request'
+import { spaceApi } from '@/entities/space'
 import { RejectRequestModal } from '@/features/reject-booking'
 import { mapApiAdminBookingToRequest } from '@/shared/api/adapters'
-import { cn } from '@/shared/lib'
-
-function Field({ label, children }: { label: string; children: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[13px] leading-none text-brand-muted">{label}</span>
-      <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px] text-brand-dark leading-tight">{children}</div>
-    </div>
-  )
-}
-
-function RequestCard({
-  request,
-  onReject,
-  onApprove,
-  onSecondary,
-}: {
-  request: BookingRequest
-  onReject: (request: BookingRequest) => void
-  onApprove: (request: BookingRequest) => void
-  onSecondary: (request: BookingRequest) => void
-}) {
-  const statusBadgeClass =
-    request.status === 'approved'
-      ? 'bg-[#daf6e8] text-[#2e9e6b]'
-      : request.status === 'rejected'
-        ? 'bg-[#fde8eb] text-[#d85068]'
-        : ''
-
-  return (
-    <article className="rounded-3xl bg-white p-3 border border-black/[0.03] shadow-[0_2px_6px_rgba(31,26,61,0.03)]">
-      <div className="flex items-start gap-2">
-        <div className="h-9 w-9 shrink-0 rounded-full bg-[#eeedfc] flex items-center justify-center text-[14px] font-semibold text-brand-primary">
-          {request.applicantInitials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] text-brand-muted">Заявка</span>
-              {request.status !== 'new' && (
-                <span className={cn('text-[12px] px-2 py-0.5 rounded-full font-medium', statusBadgeClass)}>
-                  {request.status === 'approved' ? 'Одобрена' : 'Отклонена'}
-                </span>
-              )}
-            </div>
-            <span className="text-[13px] text-brand-muted">{request.createdAtLabel}</span>
-          </div>
-          <button type="button" className="text-[13px] text-brand-primary hover:text-[#5c5adf] transition-colors">
-            Профиль ВК ↗
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2">
-        <div className="flex flex-col gap-1">
-          <span className="text-[13px] leading-none text-brand-muted">Помещение</span>
-          <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 flex items-center justify-between gap-2">
-            <span className="text-[15px] text-brand-dark leading-tight">• {request.spaceName}</span>
-            <span className="text-[13px] text-brand-muted">{request.capacityLabel}</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="Фамилия">{request.lastName}</Field>
-          <Field label="Имя">{request.firstName}</Field>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-[13px] leading-none text-brand-muted">Дата</span>
-          <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px] text-brand-dark leading-tight flex items-center gap-2">
-            <CalendarDays size={14} className="text-brand-muted" />
-            {request.dateLabel}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-[13px] leading-none text-brand-muted">С</span>
-            <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px] text-brand-dark leading-tight flex items-center gap-2">
-              <Clock3 size={14} className="text-brand-muted" />
-              {request.fromTime}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-[13px] leading-none text-brand-muted">До</span>
-            <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px] text-brand-dark leading-tight flex items-center gap-2">
-              <Clock3 size={14} className="text-brand-muted" />
-              {request.toTime}
-            </div>
-          </div>
-        </div>
-
-        <Field label="Для чего">{request.purpose}</Field>
-
-        <div className="flex flex-col gap-1">
-          <span className="text-[13px] leading-none text-brand-muted">Сколько человек</span>
-          <div className="rounded-xl bg-[#f4f4f8] px-3 py-2 flex items-center justify-between gap-2">
-            <span className="text-[15px] text-brand-dark leading-tight">{request.peopleCount}</span>
-            <span className="text-[13px] text-brand-muted">из {request.peopleLimit}</span>
-          </div>
-        </div>
-
-        {request.warningText && (
-          <div className="rounded-xl bg-[#fff7e8] text-[#c9871f] px-3 py-2 text-[13px] leading-4 flex items-start gap-2">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-            {request.warningText}
-          </div>
-        )}
-
-        {request.decisionReason && (
-          <div className="rounded-xl bg-[#ffeef1] text-[#9f5564] px-3 py-2">
-            <p className="text-[12px] uppercase tracking-[0.06em] font-semibold">Причина</p>
-            <p className="mt-1 text-[13px] leading-4">{request.decisionReason}</p>
-          </div>
-        )}
-
-        {request.decisionMeta && (
-          <div className="border-t border-[#f0eff4] pt-2 text-[12px] text-brand-muted flex items-center gap-1.5">
-            <CircleCheck size={13} className="text-[#52b683]" />
-            {request.decisionMeta}
-          </div>
-        )}
-
-        {request.status === 'new' ? (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => onReject(request)}
-              className="h-9 rounded-xl bg-[#f6f6fb] text-[#dd596c] text-[15px] font-medium hover:bg-[#f2eff9] transition-colors"
-            >
-              Отклонить
-            </button>
-            <button
-              type="button"
-              onClick={() => onApprove(request)}
-              className="h-9 rounded-xl bg-brand-primary text-white text-[15px] font-medium hover:bg-[#5c5adf] transition-colors inline-flex items-center justify-center gap-1.5"
-            >
-              <Check size={14} />
-              Одобрить
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onSecondary(request)}
-            className={cn(
-              'h-9 rounded-xl text-[15px] font-medium transition-colors',
-              request.status === 'approved'
-                ? 'bg-[#f8f8fc] text-[#dd596c] hover:bg-[#f2eff9]'
-                : 'bg-[#f6f6fb] text-[#8a88a5] hover:bg-[#f2eff9]',
-            )}
-          >
-            {request.status === 'approved' ? 'Отменить бронь' : 'Вернуть на рассмотрение'}
-          </button>
-        )}
-      </div>
-    </article>
-  )
-}
-
+import { errorMessage } from '@/shared/api/errors'
+import { bookingStatusClass, bookingStatusLabel } from '@/shared/lib/booking-status'
+import { usePagedData } from '@/shared/lib/usePagedData'
+import { useAsyncData } from '@/shared/lib/useAsyncData'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
+import { Modal } from '@/shared/ui/modal/Modal'
+function Field({ label, value }: { label: string; value: string | number }) { return <div><p className="mb-1 text-[13px] text-brand-muted">{label}</p><p className="rounded-xl bg-[#f4f4f8] px-3 py-2 text-[15px]">{value}</p></div> }
+type Decision = 'approve' | 'reject' | 'cancel' | 'return'
 export function BookingRequestsBoard() {
-  const [activeTab, setActiveTab] = useState<RequestTab>('new')
-  const [itemsByTab, setItemsByTab] = useState<Record<RequestTab, BookingRequest[]>>({
-    new: [],
-    approved: [],
-    rejected: [],
-  })
-  const [rejectingRequest, setRejectingRequest] = useState<BookingRequest | null>(null)
-
-  const reloadTab = (tab: RequestTab) => {
-    bookingApi
-      .getAdminBookings(tab)
-      .then((data) => {
-        setItemsByTab((prev) => ({
-          ...prev,
-          [tab]: (data?.items ?? []).map(mapApiAdminBookingToRequest),
-        }))
-      })
-      .catch(() => undefined)
+  const [tab, setTab] = useState<RequestTab>('new')
+  const list = usePagedData(cursor => bookingApi.getAdminBookings(tab, cursor), tab)
+  const spaces = useAsyncData(() => spaceApi.getSpaces(), 'admin-spaces')
+  const requests = list.items.map(item => mapApiAdminBookingToRequest(item, spaces.data))
+  const [target, setTarget] = useState<{ request: BookingRequest; action: Decision }>()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const act = async (reason?: string, title?: string) => {
+    if (!target?.request.bookingId || busy) return
+    setBusy(true); setError('')
+    try {
+      const id = target.request.bookingId
+      if (target.action === 'approve') await bookingApi.approveAdminBooking(id)
+      else if (target.action === 'reject') await bookingApi.rejectAdminBooking(id, reason!, title)
+      else if (target.action === 'cancel') await bookingApi.cancelAdminBooking(id)
+      else await bookingApi.returnAdminBookingToReview(id)
+      setTarget(undefined); setNotice('Изменения сохранены.'); list.reload()
+    } catch (reason) { setError(errorMessage(reason)) }
+    finally { setBusy(false) }
   }
-
-  useEffect(() => {
-    bookingApi
-      .getAdminBookings(activeTab)
-      .then((data) => {
-        setItemsByTab((prev) => ({
-          ...prev,
-          [activeTab]: (data?.items ?? []).map(mapApiAdminBookingToRequest),
-        }))
-      })
-      .catch(() => undefined)
-  }, [activeTab])
-
-  const requests = useMemo(() => itemsByTab[activeTab], [activeTab, itemsByTab])
-
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="rounded-2xl bg-white p-1 grid grid-cols-3 gap-1">
-        {REQUEST_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'h-8 rounded-xl text-[14px] transition-colors',
-              activeTab === tab.key
-                ? 'bg-brand-primary text-white'
-                : 'text-brand-dark hover:bg-[#f2f2f8]',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        {requests.map((request) => (
-          <RequestCard
-            key={request.id}
-            request={request}
-            onReject={setRejectingRequest}
-            onApprove={(current) => {
-              if (!current.bookingId) return
-              bookingApi
-                .approveAdminBooking(current.bookingId)
-                .then(() => reloadTab(activeTab))
-                .catch(() => undefined)
-            }}
-            onSecondary={(current) => {
-              if (!current.bookingId) return
-              const call =
-                current.status === 'approved'
-                  ? bookingApi.cancelAdminBooking(current.bookingId)
-                  : bookingApi.returnAdminBookingToReview(current.bookingId)
-
-              call.then(() => reloadTab(activeTab)).catch(() => undefined)
-            }}
-          />
-        ))}
-      </div>
-
-      {rejectingRequest && (
-        <RejectRequestModal
-          request={rejectingRequest}
-          onClose={() => setRejectingRequest(null)}
-          onSubmit={(reason) => {
-            const request = rejectingRequest
-            setRejectingRequest(null)
-            if (!request.bookingId) return
-            bookingApi
-              .rejectAdminBooking(request.bookingId, reason)
-              .then(() => reloadTab(activeTab))
-              .catch(() => undefined)
-          }}
-        />
-      )}
-    </section>
-  )
+  const open = (request: BookingRequest, action: Decision) => { setTarget({ request, action }); setError('') }
+  return <section className="flex flex-col gap-3">
+    <div className="tab-list w-full">{([{ key: 'new', name: 'Новые' }, { key: 'approved', name: 'Одобренные' }, { key: 'rejected', name: 'Отклонённые' }] as const).map(item => <button key={item.key} className={tab === item.key ? 'active' : ''} aria-pressed={tab === item.key} onClick={() => { setTab(item.key); setNotice('') }}>{item.name}{item.key === 'new' && list.newCount !== undefined ? ' ' + list.newCount : ''}</button>)}</div>
+    {notice && <p role="status" className="success-message">{notice}</p>}
+    {spaces.error && <ErrorState message="Не удалось загрузить вместимость помещений." onRetry={spaces.reload} />}
+    {list.loading ? <LoadingState /> : list.error ? <ErrorState message={list.error} onRetry={list.reload} /> : !requests.length ? <EmptyState title="Заявок в этой вкладке нет" /> :
+      requests.map(request => <article key={request.id} className="rounded-3xl bg-white p-4">
+        <header className="flex items-start gap-2"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#eeedfc] text-[14px] font-semibold text-brand-primary">{request.applicantInitials}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className={'rounded-full px-2 py-1 text-[12px] ' + bookingStatusClass(request.bookingStatus)}>{bookingStatusLabel(request.bookingStatus)}</span><span className="text-[12px] text-brand-muted">{request.createdAtLabel}</span></div>{request.vkUserId && <a href={'https://vk.com/id' + request.vkUserId} target="_blank" rel="noreferrer" className="text-[13px] text-brand-primary">Профиль ВК ↗</a>}</div></header>
+        <div className="mt-4 flex flex-col gap-3"><Field label="Помещение" value={request.spaceName + (request.capacityLabel ? ' · ' + request.capacityLabel : '')} />
+          <div className="grid grid-cols-2 gap-3"><Field label="Фамилия" value={request.lastName} /><Field label="Имя" value={request.firstName} /></div>
+          <Field label="Дата" value={request.dateLabel} /><div className="grid grid-cols-2 gap-3"><Field label="С" value={request.fromTime} /><Field label="До" value={request.toTime} /></div>
+          <Field label="Для чего" value={request.purpose} /><Field label="Сколько человек" value={request.peopleCount + (request.peopleLimit ? ' из ' + request.peopleLimit : '')} />
+          {request.warningText && <p className="flex gap-2 whitespace-pre-line rounded-xl bg-[#fff7e8] p-3 text-[13px] text-[#99621b]"><AlertTriangle size={17} className="shrink-0" />{request.warningText}</p>}
+          {request.decisionReason && <div className="rounded-xl bg-[#fff0f2] p-3 text-[13px] text-[#9a3548]"><p className="mb-1 font-semibold">{request.decisionReasonTitle || 'Причина отказа'}</p><p>{request.decisionReason}</p></div>}
+          {request.decisionMeta && <p className="border-t border-brand-border pt-2 text-[12px] text-brand-muted">{request.decisionMeta}</p>}
+          {request.bookingStatus === 'pending' && <div className="grid grid-cols-2 gap-3"><button className="secondary-action text-[#bd3f56]!" disabled={busy} onClick={() => open(request, 'reject')}>Отклонить</button><button className="primary-action flex items-center justify-center gap-1 bg-brand-primary! text-white!" disabled={busy} onClick={() => open(request, 'approve')}><Check size={17} />Одобрить</button></div>}
+          {request.bookingStatus === 'approved' && <button disabled={busy} className="secondary-action text-[#bd3f56]!" onClick={() => open(request, 'cancel')}>Отменить бронь</button>}
+          {request.bookingStatus === 'rejected' && <button disabled={busy} className="secondary-action text-brand-primary!" onClick={() => open(request, 'return')}>Вернуть на рассмотрение</button>}
+        </div>
+      </article>)}
+    {list.moreError && <ErrorState message={list.moreError} onRetry={() => { void list.loadMore() }} />}
+    {list.cursor && <button className="secondary-action" disabled={list.more} onClick={() => { void list.loadMore() }}>{list.more ? 'Загружаем…' : 'Показать ещё'}</button>}
+    {target?.action === 'reject' ? <RejectRequestModal request={target.request} busy={busy} error={error} onClose={() => setTarget(undefined)} onSubmit={(reason, title) => { void act(reason, title) }} /> :
+      target && <Modal title={target.action === 'approve' ? 'Одобрить заявку?' : target.action === 'cancel' ? 'Отменить бронь?' : 'Вернуть на рассмотрение?'} busy={busy} onClose={() => setTarget(undefined)}>
+        <p className="text-[14px] text-brand-muted">{target.request.lastName} {target.request.firstName} · {target.request.dateLabel}, {target.request.fromTime}–{target.request.toTime}</p>
+        {target.request.warningText && <p className="mt-3 rounded-xl bg-[#fff7e8] p-3 text-[13px]">{target.request.warningText}</p>}
+        {error && <div className="mt-3"><ErrorState message={error} /></div>}
+        <div className="mt-4 grid grid-cols-2 gap-3"><button disabled={busy} className="secondary-action" onClick={() => setTarget(undefined)}>Назад</button><button disabled={busy} className="primary-action" onClick={() => { void act() }}>{busy ? 'Сохраняем…' : 'Подтвердить'}</button></div>
+      </Modal>}
+  </section>
 }

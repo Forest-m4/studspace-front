@@ -1,65 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { MOCK_SCHEDULE_ITEMS, MOCK_SCHEDULE_SPACES, scheduleApi } from '@/entities/schedule'
-import type { Booking, ScheduleSpace } from '@/entities/schedule'
+import { scheduleApi } from '@/entities/schedule'
 import { mapApiScheduleToView } from '@/shared/api/adapters'
 import { routes } from '@/shared/config'
+import { toISODate, weekRange } from '@/shared/lib/format'
+import { useAsyncData } from '@/shared/lib/useAsyncData'
+import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/async-state/AsyncState'
 import { ScheduleGrid } from '@/widgets/schedule-grid'
 import { ScheduleHeader } from '@/widgets/schedule-header'
-
-export interface SchedulePageProps {
-  onCreateBooking?: () => void
-}
-
-export function SchedulePage({ onCreateBooking }: SchedulePageProps) {
+export function SchedulePage() {
   const navigate = useNavigate()
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day')
-  const [selectedDate, setSelectedDate] = useState('2026-10-16')
-  const [spaces, setSpaces] = useState<ScheduleSpace[]>(MOCK_SCHEDULE_SPACES)
-  const [items, setItems] = useState<Booking[]>(MOCK_SCHEDULE_ITEMS)
-
-  useEffect(() => {
-    scheduleApi
-      .getSchedule(selectedDate, selectedDate)
-      .then((data) => {
-        if (!data) return
-        const mapped = mapApiScheduleToView(data)
-        if (mapped.spaces.length > 0) {
-          setSpaces(mapped.spaces)
-        }
-        setItems(mapped.items)
-      })
-      .catch(() => undefined)
-  }, [selectedDate])
-
-  const handleCreateBooking = () => {
-    if (onCreateBooking) {
-      onCreateBooking()
-      return
-    }
-    navigate(routes.newBooking)
+  const [selectedDate, setSelectedDate] = useState(() => toISODate(new Date()))
+  const range = viewMode === 'week' ? weekRange(selectedDate) : { from: selectedDate, to: selectedDate }
+  const state = useAsyncData(() => scheduleApi.getSchedule(range.from, range.to), range.from + ':' + range.to)
+  const view = mapApiScheduleToView(state.data)
+  const book = (date = selectedDate, spaceId?: number, from?: string, to?: string) => {
+    const params = new URLSearchParams({ date })
+    if (spaceId) params.set('spaceId', String(spaceId))
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    navigate(routes.newBooking + '?' + params)
   }
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-50 relative">
-      <ScheduleHeader
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        spaces={spaces}
-      />
-
-      <ScheduleGrid spaces={spaces} items={items} />
-
-      <button
-        type="button"
-        onClick={handleCreateBooking}
-        className="absolute bottom-24 right-4 w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-700 transition-colors z-40"
-      >
-        <Plus size={28} />
-      </button>
-    </div>
-  )
+  return <main className="page-shell schedule-page relative">
+    <ScheduleHeader viewMode={viewMode} onViewModeChange={setViewMode} selectedDate={selectedDate} onDateChange={setSelectedDate} spaces={view.spaces} />
+    {state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} onRetry={state.reload} /> : view.spaces.length ?
+      <ScheduleGrid spaces={view.spaces} items={view.items} selectedDate={selectedDate} viewMode={viewMode} onSelectSlot={book} />
+      : <EmptyState title="Нет доступных помещений" />}
+    <button type="button" onClick={() => book()} aria-label="Новая заявка" className="floating-action"><Plus size={24} /></button>
+  </main>
 }

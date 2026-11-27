@@ -3,6 +3,7 @@ import { Avatar } from '@/shared/ui'
 import type { User } from '@/entities/user'
 
 export interface AppHeaderProps {
+  notificationsBusy?: boolean
   user: User
   hasNotifications?: boolean
   onNotificationsClick?: () => void
@@ -10,6 +11,7 @@ export interface AppHeaderProps {
 }
 
 export function AppHeader({
+  notificationsBusy,
   user,
   hasNotifications = false,
   onNotificationsClick,
@@ -32,6 +34,9 @@ export function AppHeader({
         </span>
       </div>
       <button
+        disabled={notificationsBusy}
+        aria-pressed={hasNotifications}
+        title={hasNotifications ? "Выключить уведомления" : "Включить уведомления"}
         onClick={onNotificationsClick}
         className="relative size-10 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors cursor-pointer"
         aria-label="Уведомления"

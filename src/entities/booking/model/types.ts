@@ -1,4 +1,4 @@
-export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled'
+export type BookingStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled' | 'withdrawn' | 'expired'
 
 export interface Booking {
   id: string | number

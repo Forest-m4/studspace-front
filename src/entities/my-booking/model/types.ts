@@ -1,5 +1,5 @@
 export type MyBookingTab = 'active' | 'history'
-export type MyBookingStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled'
+export type MyBookingStatus = 'pending' | 'approved' | 'rejected' | 'completed' | 'cancelled' | 'withdrawn' | 'expired'
 
 export interface MyBooking {
   id: string
@@ -9,6 +9,10 @@ export interface MyBooking {
   createdAtLabel?: string
   dateTimeLabel: string
   spaceAndPeople: string
+  title?: string
+  peopleCount?: number
+  actions?: string[]
+  cancelledBy?: string
   purpose: string
   statusNote?: string
   rejectReason?: string

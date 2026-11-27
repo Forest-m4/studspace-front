@@ -1,1 +1,1 @@
-export { EventsPage, type EventsPageProps } from './ui/EventsPage'
+export { EventsPage } from './ui/EventsPage'
